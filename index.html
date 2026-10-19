@@ -83,7 +83,7 @@ function nearestResource(){let best=null,bd=5.2;for(const o of resourceObjects){
 function interact(){const r=nearestResource();if(r){r.taken=true;scene.remove(r.group);player[r.type]++;toast(({wood:'Madera recogida',stone:'Piedra recogida',fiber:'Fibra vegetal recogida'})[r.type]+` · ${player[r.type]}`);if(player.wood+player.stone+player.fiber>=4)$('objective').querySelector('strong').textContent='Explora el puesto abandonado';return}
  const dist=Math.hypot(player.x+14,player.z+30);if(dist<7){toast('Puesto costero · busca suministros');return}
  toast('No hay nada que recoger aquí. Explora la costa.')}
-$('interactBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();interact()});$('interactBtn').addEventListener('click',e=>{e.preventDefault();interact()});
+$('interactBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();interact()});
 $('toolBtn').addEventListener('pointerdown',e=>{e.preventDefault();player.tool=(player.tool+1)%3;toast(['Manos libres','Herramienta improvisada','Antorcha'][player.tool])});
 $('runBtn').addEventListener('pointerdown',e=>{e.preventDefault();running=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>$('runBtn').addEventListener(ev,()=>running=false));
 $('qualityBtn').onclick=()=>{qualityHigh=!qualityHigh;renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?1.7:1));sun.castShadow=qualityHigh;$('qualityBtn').textContent=qualityHigh?'◈ ALTO':'◈ AHORRO';toast(qualityHigh?'Calidad visual alta':'Modo ahorro activado')};
