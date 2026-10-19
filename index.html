@@ -88,6 +88,27 @@ const bushGeo=new THREE.IcosahedronGeometry(1,1);const bushMats=[mat(0x294a31,.9
 
 const player={x:0,z:7,yaw:0,pitch:0,health:100,water:82,energy:76,wood:0,stone:0,fiber:0,tool:0};camera.position.set(player.x,2.05,player.z);
 const keys={};let joy={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","REGISTRO · CAPÍTULO 01"];
+const SAVE_KEY='wildline-save-v1';
+let hasLocalSave=false;
+function saveProgress(){
+ try{
+  const data={version:1,player:{x:player.x,z:player.z,yaw:player.yaw,pitch:player.pitch,health:player.health,water:player.water,energy:player.energy,wood:player.wood,stone:player.stone,fiber:player.fiber,tool:player.tool},missionStage,taken:resourceObjects.filter(o=>o.taken).map(o=>resourceObjects.indexOf(o)),savedAt:Date.now()};
+  localStorage.setItem(SAVE_KEY,JSON.stringify(data));hasLocalSave=true;
+ }catch(e){console.warn('WILDLINE: no se pudo guardar localmente',e)}
+}
+function loadProgress(){
+ try{
+  const raw=localStorage.getItem(SAVE_KEY);if(!raw)return false;
+  const data=JSON.parse(raw);if(!data||data.version!==1||!data.player)return false;
+  const p=data.player;
+  for(const k of ['x','z','yaw','pitch','health','water','energy','wood','stone','fiber','tool'])if(Number.isFinite(p[k]))player[k]=p[k];
+  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,3):0;
+  if(Array.isArray(data.taken))for(const i of data.taken){if(Number.isInteger(i)&&resourceObjects[i]&&!resourceObjects[i].taken){resourceObjects[i].taken=true;scene.remove(resourceObjects[i].group)}}
+  camera.position.set(player.x,terrainY(player.x,player.z)+1.72,player.z);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
+  hasLocalSave=true;updateStats();updateMission();$('start').textContent='CONTINUAR PARTIDA →';
+  return true;
+ }catch(e){console.warn('WILDLINE: guardado local inválido',e);return false}
+}
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),1900)}
 function updateStats(){for(const [key,id] of [['health','hp'],['water','water'],['energy','food']]){$(id+'Text').textContent=Math.round(player[key]);$(id+'Bar').style.width=player[key]+'%'}}
 function nearestResource(){let best=null,bd=5.2;for(const o of resourceObjects){if(o.taken)continue;const d=Math.hypot(o.x-player.x,o.z-player.z);if(d<bd){best=o;bd=d}}return best}
@@ -114,14 +135,14 @@ function lookEnd(e){if(lookId===e.pointerId)lookId=null}
 renderer.domElement.addEventListener('pointerup',lookEnd);renderer.domElement.addEventListener('pointercancel',lookEnd);
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' '){e.preventDefault();interact()}if(e.key.toLowerCase()==='shift')running=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.key.toLowerCase()==='shift')running=false});
-$('start').onclick=()=>{$('intro').classList.add('hidden');started=true;toast('La isla está despierta. Busca recursos.')};
+$('start').onclick=()=>{$('intro').classList.add('hidden');started=true;toast(hasLocalSave?'Partida recuperada. ¡Continúa la exploración!':'La isla está despierta. Busca recursos.');saveProgress()};
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?(deviceTier?2:1.5):1))});
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);dayTime+=dt;
  // Slow sunlight drift gives the scene a subtle living quality.
  sun.position.x=-55+Math.sin(dayTime*.025)*18;sun.position.z=25+Math.cos(dayTime*.025)*12;
  water.position.y=-.48+Math.sin(dayTime*.65)*.035;if(waterShader)waterShader.uniforms.uWildlineTime.value=dayTime;
- if(started){let f=-joy.y+(keys.w||keys.arrowup?-1:0)+(keys.s||keys.arrowdown?1:0),side=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const len=Math.hypot(f,side);if(len>1){f/=len;side/=len}
+ if(started){if(Math.floor(dayTime)%4===0&&Math.floor(dayTime)!==animate.lastSaveTick){animate.lastSaveTick=Math.floor(dayTime);saveProgress()}let f=-joy.y+(keys.w||keys.arrowup?-1:0)+(keys.s||keys.arrowdown?1:0),side=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const len=Math.hypot(f,side);if(len>1){f/=len;side/=len}
  const speed=(running||keys.shift?7.5:4.1)*dt;const dx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*side)*speed,dz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*side)*speed;
  let nx=player.x+dx,nz=player.z+dz;
  // Soft collision against tree trunks and rocks.
@@ -135,7 +156,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  }
  // Subtle distant atmospheric gradient and moving cloud-like haze.
  sky.position.copy(camera.position);renderer.render(scene,camera)}
-animate();updateStats();updateMission();
+loadProgress();animate();updateStats();updateMission();
 </script>
 </body>
 </html>
