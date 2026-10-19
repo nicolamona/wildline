@@ -27,29 +27,34 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
 
 const $=id=>document.getElementById(id);
-const scene=new THREE.Scene(); scene.background=new THREE.Color(0x9bb9b5); scene.fog=new THREE.FogExp2(0x9bb9b5,.0085);
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x9bb9b5); scene.fog=new THREE.FogExp2(0x9bb9b5,.0068);
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,.1,450);
 camera.rotation.order='YXZ'; scene.add(camera);
+const deviceTier=(navigator.hardwareConcurrency||4)>=6 && (navigator.deviceMemory||4)>=4;
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.7)); renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,deviceTier?2:1.5)); renderer.setSize(innerWidth,innerHeight);
+renderer.outputColorSpace=THREE.SRGBColorSpace;
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05;
 $('game').appendChild(renderer.domElement);
 const hemi=new THREE.HemisphereLight(0xc5e1e6,0x35402c,1.65);scene.add(hemi);
 const sun=new THREE.DirectionalLight(0xffe4ba,3.1);sun.position.set(-55,85,25);sun.castShadow=true;
-sun.shadow.mapSize.set(1024,1024);sun.shadow.camera.left=-65;sun.shadow.camera.right=65;sun.shadow.camera.top=65;sun.shadow.camera.bottom=-65;sun.shadow.bias=-.0003;scene.add(sun);
+sun.shadow.mapSize.set(deviceTier?2048:1024,deviceTier?2048:1024);sun.shadow.camera.left=-65;sun.shadow.camera.right=65;sun.shadow.camera.top=65;sun.shadow.camera.bottom=-65;sun.shadow.bias=-.0003;sun.shadow.normalBias=.035;scene.add(sun);
 const fill=new THREE.DirectionalLight(0x9bc8d2,.65);fill.position.set(35,22,-50);scene.add(fill);
 
 function mat(color,roughness=1,extra={}){return new THREE.MeshStandardMaterial({color,roughness,...extra})}
-const groundMat=mat(0x52684a),sandMat=mat(0xb8a77e),rockMat=mat(0x626c66),barkMat=mat(0x4b3b2b),leafMats=[mat(0x284b35),mat(0x365b3c),mat(0x496a43),mat(0x234536)];
-const waterMat=new THREE.MeshStandardMaterial({color:0x397d83,roughness:.25,metalness:.16,transparent:true,opacity:.88});
+function surfaceTexture(base,repeat,variation=18){const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d'),im=ctx.createImageData(256,256);const col=new THREE.Color(base);for(let i=0;i<im.data.length;i+=4){const n=(Math.random()-.5)*variation;im.data[i]=Math.max(0,Math.min(255,col.r*255+n));im.data[i+1]=Math.max(0,Math.min(255,col.g*255+n));im.data[i+2]=Math.max(0,Math.min(255,col.b*255+n));im.data[i+3]=255}ctx.putImageData(im,0,0);for(let i=0;i<380;i++){ctx.globalAlpha=.035+Math.random()*.09;ctx.fillStyle=Math.random()>.5?'#10170f':'#e2d6b5';ctx.beginPath();ctx.ellipse(Math.random()*256,Math.random()*256,1+Math.random()*8,1+Math.random()*5,Math.random()*Math.PI,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(repeat,repeat);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());return t}
+const groundMat=mat(0x52684a,.98,{map:surfaceTexture(0x52684a,18,24)}),sandMat=mat(0xb8a77e,.96,{map:surfaceTexture(0xb8a77e,11,15)}),rockMat=mat(0x626c66,.94,{map:surfaceTexture(0x626c66,3,32)}),barkMat=mat(0x4b3b2b,.92,{map:surfaceTexture(0x4b3b2b,2,28)}),leafMats=[mat(0x284b35,.88),mat(0x365b3c,.9),mat(0x496a43,.9),mat(0x234536,.9)];
+const waterMat=new THREE.MeshStandardMaterial({color:0x397d83,roughness:.22,metalness:.12,transparent:true,opacity:.91});
+let waterShader=null;waterMat.onBeforeCompile=shader=>{shader.uniforms.uWildlineTime={value:0};waterShader=shader;shader.vertexShader='uniform float uWildlineTime;\\n'+shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\\n transformed.z += sin(position.x*.035+uWildlineTime*.8)*.10 + cos(position.y*.045+uWildlineTime*.62)*.065;');};
 const groundGeo=new THREE.PlaneGeometry(360,360,100,100);groundGeo.rotateX(-Math.PI/2);
 const pos=groundGeo.attributes.position;
 for(let i=0;i<pos.count;i++){const x=pos.getX(i),z=pos.getZ(i);let y=Math.sin(x*.075)*.75+Math.cos(z*.06)*.9+Math.sin((x+z)*.035)*1.6;y-=Math.max(0,Math.hypot(x,z)-62)*.12;pos.setY(i,y)}
 groundGeo.computeVertexNormals();const ground=new THREE.Mesh(groundGeo,groundMat);ground.receiveShadow=true;scene.add(ground);
-const water=new THREE.Mesh(new THREE.PlaneGeometry(700,700),waterMat);water.rotation.x=-Math.PI/2;water.position.y=-.48;scene.add(water);
+const waterGeo=new THREE.PlaneGeometry(700,700,80,80);const water=new THREE.Mesh(waterGeo,waterMat);water.rotation.x=-Math.PI/2;water.position.y=-.48;scene.add(water);
 // Irregular beach ring: broad pale crescent on the southern side.
 const beach=new THREE.Mesh(new THREE.RingGeometry(29,42,100,5),sandMat);beach.rotation.x=-Math.PI/2;beach.position.set(0,.04,0);beach.scale.set(1.25,1.0,.78);scene.add(beach);
+const skyGeo=new THREE.SphereGeometry(420,32,18);const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,vertexShader:'varying vec3 vSkyDir; void main(){vSkyDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec3 vSkyDir; void main(){float h=clamp(normalize(vSkyDir).y*.5+.5,0.0,1.0);vec3 horizon=vec3(.72,.78,.74);vec3 zenith=vec3(.12,.29,.39);vec3 col=mix(horizon,zenith,smoothstep(.02,.92,h));float sunGlow=pow(max(dot(normalize(vSkyDir),normalize(vec3(-.48,.62,.32))),0.0),48.0);col+=vec3(1.0,.72,.43)*sunGlow*.65;gl_FragColor=vec4(col,1.0);}'});const sky=new THREE.Mesh(skyGeo,skyMat);sky.frustumCulled=false;scene.add(sky);
 const objects=[]; const resourceObjects=[];
 function addTree(x,z,s=1){const y=terrainY(x,z);const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.22*s,.42*s,4.8*s,7),barkMat);trunk.position.set(x,y+2.4*s,z);trunk.rotation.z=(Math.sin(x*2+z)*.08);trunk.castShadow=true;trunk.receiveShadow=true;scene.add(trunk);
  for(let j=0;j<3;j++){const r=(2.4-j*.38)*s;const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(r,1),leafMats[Math.floor(Math.abs(Math.sin(x*7+z*3+j))*leafMats.length)]);crown.position.set(x+(j-1)*.23*s,y+(4.2+j*1.22)*s,z+(j%2-.5)*.28*s);crown.scale.set(1,.82,1);crown.castShadow=true;crown.receiveShadow=true;scene.add(crown)}
@@ -67,13 +72,19 @@ for(let i=0;i<22;i++){const x=(Math.random()-.5)*80,z=(Math.random()-.5)*70;if(M
 // fallen trunks and a weather-beaten research outpost
 function boxMesh(w,h,d,material,x,y,z){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
 for(let i=0;i<5;i++){const log=boxMesh(.3,.32,2.7,barkMat,12+i*1.3,terrainY(12+i*1.3,-16)+.24,-16+i*.8);log.rotation.y=.4}
+// A cave mouth cut into the northern ridge, framed by weathered stone.
+const caveX=35,caveZ=-53,caveY=terrainY(caveX,caveZ)+1.55;const caveDark=new THREE.Mesh(new THREE.CircleGeometry(2.65,32),new THREE.MeshBasicMaterial({color:0x080d0b}));caveDark.position.set(caveX,caveY,caveZ);scene.add(caveDark);const caveRim=new THREE.Mesh(new THREE.TorusGeometry(2.8,.48,9,28,Math.PI),rockMat);caveRim.position.set(caveX,caveY,caveZ-.12);caveRim.rotation.z=Math.PI; caveRim.castShadow=true;scene.add(caveRim);for(let i=0;i<7;i++){const rr=boxMesh(.55,.5,.65,rockMat,caveX-2.3+i*.75,caveY-2.2+Math.random()*.24,caveZ-.2);rr.rotation.y=Math.random()*.8}
+// Bleached driftwood and pebble clusters break up the beach silhouette.
+for(let i=0;i<18;i++){const a=Math.random()*Math.PI*2,r=33+Math.random()*5,x=Math.cos(a)*r*1.18,z=Math.sin(a)*r*.76;const log=boxMesh(.12+Math.random()*.12,.13,1.1+Math.random()*1.8,barkMat,x,.17,z);log.rotation.y=a+(Math.random()-.5)*1.5;log.rotation.z=(Math.random()-.5)*.18}
 const metal=mat(0x626d65,.8,{metalness:.45});const rust=mat(0x74513c,.9,{metalness:.25});
 boxMesh(5,.22,4,metal,-14,2,-30);boxMesh(.18,3.8,.18,rust,-16.2,.2,-31.8);boxMesh(.18,3.8,.18,rust,-11.8,.2,-31.8);boxMesh(4.7,.18,.18,rust,-14,3.9,-31.8);boxMesh(4.7,.18,.18,rust,-14,3.9,-28.2);
 const roof=boxMesh(5.5,.18,4.5,mat(0x4b5751,.85),-14,4.1,-30);roof.rotation.z=.04;
 // Sparse grasses near the beach; instanced for performance.
-const grassGeo=new THREE.ConeGeometry(.07,.65,3);const grassMat=mat(0x71845a);
-const grass=new THREE.InstancedMesh(grassGeo,grassMat,900);const dummy=new THREE.Object3D();let gi=0;
-for(let i=0;i<900;i++){const a=Math.random()*Math.PI*2,r=28+Math.random()*62,x=Math.cos(a)*r,z=Math.sin(a)*r*.8;if(Math.hypot(x,z)<30)continue;dummy.position.set(x,terrainY(x,z)+.22,z);dummy.rotation.z=(Math.random()-.5)*.35;dummy.rotation.y=Math.random()*Math.PI;const s=.35+Math.random()*.8;dummy.scale.set(s,s,s);dummy.updateMatrix();grass.setMatrixAt(gi++,dummy.matrix)}grass.count=gi;scene.add(grass);
+const grassGeo=new THREE.ConeGeometry(.07,.65,3);const grassMat=mat(0x71845a,.96);
+const grass=new THREE.InstancedMesh(grassGeo,grassMat,2200);const dummy=new THREE.Object3D();let gi=0;
+for(let i=0;i<2200;i++){const a=Math.random()*Math.PI*2,r=25+Math.random()*72,x=Math.cos(a)*r,z=Math.sin(a)*r*.8;if(Math.hypot(x,z)<30)continue;dummy.position.set(x,terrainY(x,z)+.22,z);dummy.rotation.z=(Math.random()-.5)*.35;dummy.rotation.y=Math.random()*Math.PI;const sc=.35+Math.random()*1.05;dummy.scale.set(sc,sc,sc);dummy.updateMatrix();grass.setMatrixAt(gi++,dummy.matrix)}grass.count=gi;grass.receiveShadow=true;scene.add(grass);
+// Instanced understory adds density without thousands of individual draw calls.
+const bushGeo=new THREE.IcosahedronGeometry(1,1);const bushMats=[mat(0x294a31,.96),mat(0x385b37,.96),mat(0x4a6940,.96)];const bushLists=[[],[],[]];for(let i=0;i<1050;i++){const a=Math.random()*Math.PI*2,r=24+Math.random()*75,x=Math.cos(a)*r*1.1,z=Math.sin(a)*r*.82;if(Math.hypot(x,z)<29)continue;const k=Math.floor(Math.random()*3);dummy.position.set(x,terrainY(x,z)+.45,z);dummy.rotation.set(Math.random()*.2,Math.random()*Math.PI,Math.random()*.2);const sc=.45+Math.random()*.9;dummy.scale.set(sc,.45+sc*.55,sc);dummy.updateMatrix();bushLists[k].push(dummy.matrix.clone())}for(let k=0;k<3;k++){const inst=new THREE.InstancedMesh(bushGeo,bushMats[k],bushLists[k].length);bushLists[k].forEach((m,i)=>inst.setMatrixAt(i,m));inst.instanceMatrix.needsUpdate=true;scene.add(inst)}
 
 const player={x:0,z:7,yaw:0,pitch:0,health:100,water:82,energy:76,wood:0,stone:0,fiber:0,tool:0};camera.position.set(player.x,2.05,player.z);
 const keys={};let joy={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;
@@ -86,7 +97,7 @@ function interact(){const r=nearestResource();if(r){r.taken=true;scene.remove(r.
 $('interactBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();interact()});
 $('toolBtn').addEventListener('pointerdown',e=>{e.preventDefault();player.tool=(player.tool+1)%3;toast(['Manos libres','Herramienta improvisada','Antorcha'][player.tool])});
 $('runBtn').addEventListener('pointerdown',e=>{e.preventDefault();running=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>$('runBtn').addEventListener(ev,()=>running=false));
-$('qualityBtn').onclick=()=>{qualityHigh=!qualityHigh;renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?1.7:1));sun.castShadow=qualityHigh;$('qualityBtn').textContent=qualityHigh?'◈ ALTO':'◈ AHORRO';toast(qualityHigh?'Calidad visual alta':'Modo ahorro activado')};
+$('qualityBtn').onclick=()=>{qualityHigh=!qualityHigh;renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?(deviceTier?2:1.5):1));sun.castShadow=qualityHigh;$('qualityBtn').textContent=qualityHigh?'◈ ALTO':'◈ AHORRO';toast(qualityHigh?'Calidad visual alta':'Modo ahorro activado')};
 $('mapBtn').onclick=()=>toast(`BRÚJULA  ·  ${Math.round((player.yaw*180/Math.PI+360)%360)}°`);
 const zone=$('moveZone'),knob=$('joyKnob');let joyId=null;
 function joyMove(e){const r=zone.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=37,len=Math.min(max,Math.hypot(dx,dy)),ang=Math.atan2(dy,dx);joy.x=Math.cos(ang)*len/max;joy.y=Math.sin(ang)*len/max;knob.style.transform=`translate(${joy.x*37}px,${joy.y*37}px)`}
@@ -102,12 +113,12 @@ renderer.domElement.addEventListener('pointerup',lookEnd);renderer.domElement.ad
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.key===' '){e.preventDefault();interact()}if(e.key.toLowerCase()==='shift')running=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;if(e.key.toLowerCase()==='shift')running=false});
 $('start').onclick=()=>{$('intro').classList.add('hidden');started=true;toast('La isla está despierta. Busca recursos.')};
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?1.7:1))});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?(deviceTier?2:1.5):1))});
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);dayTime+=dt;
  // Slow sunlight drift gives the scene a subtle living quality.
  sun.position.x=-55+Math.sin(dayTime*.025)*18;sun.position.z=25+Math.cos(dayTime*.025)*12;
- water.position.y=-.48+Math.sin(dayTime*.65)*.035;
+ water.position.y=-.48+Math.sin(dayTime*.65)*.035;if(waterShader)waterShader.uniforms.uWildlineTime.value=dayTime;
  if(started){let f=-joy.y+(keys.w||keys.arrowup?-1:0)+(keys.s||keys.arrowdown?1:0),side=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const len=Math.hypot(f,side);if(len>1){f/=len;side/=len}
  const speed=(running||keys.shift?7.5:4.1)*dt;const dx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*side)*speed,dz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*side)*speed;
  let nx=player.x+dx,nz=player.z+dz;
