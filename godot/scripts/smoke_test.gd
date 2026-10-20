@@ -53,7 +53,7 @@ func _run_smoke_test() -> void:
 		var move_button := entry["button"] as Control
 		var touch := InputEventScreenTouch.new()
 		touch.index = touch_index
-		touch.position = move_button.get_global_rect().get_center()
+		touch.position = move_button.get_global_transform_with_canvas() * (move_button.size * 0.5)
 		touch.pressed = true
 		world._input(touch)
 		if player.move_input != expected_directions[i]:
