@@ -58,28 +58,36 @@ const skyGeo=new THREE.SphereGeometry(420,32,18);const skyMat=new THREE.ShaderMa
 const objects=[]; const resourceObjects=[];
 function addTree(x,z,s=1){
  const y=terrainY(x,z),seed=Math.abs(Math.sin(x*12.9898+z*78.233));
- // Tapered, subtly bent trunk with a visible bark silhouette.
- const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.13*s,.34*s,5.4*s,8,3),barkMat);
- trunk.position.set(x,y+2.7*s,z);trunk.rotation.z=Math.sin(x*2+z)*.055;trunk.rotation.x=Math.cos(z*1.7+x)*.035;trunk.castShadow=true;trunk.receiveShadow=true;scene.add(trunk);
- // Branches emerge from the trunk instead of hiding it inside a round canopy.
- for(let b=0;b<4;b++){
-  const a=seed*Math.PI*2+b*Math.PI*.5+.4,baseY=(2.65+b*.48)*s,len=(.95+(b%2)*.22)*s;
-  const branch=new THREE.Mesh(new THREE.CylinderGeometry(.035*s,.105*s,len,5),barkMat);
-  branch.position.set(x+Math.cos(a)*len*.28,y+baseY+len*.26,z+Math.sin(a)*len*.28);
-  branch.rotation.z=Math.cos(a)*-.72;branch.rotation.x=Math.sin(a)*.72;branch.rotation.y=a;
+ // Deliberately new silhouette: tall woodland trees with visible trunks
+ // and layered, pointed crowns instead of spherical green clumps.
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.105*s,.32*s,5.8*s,7,2),barkMat);
+ trunk.position.set(x,y+2.9*s,z);trunk.rotation.z=Math.sin(x*2+z)*.045;trunk.rotation.x=Math.cos(z*1.7+x)*.035;trunk.castShadow=true;trunk.receiveShadow=true;scene.add(trunk);
+ // Long, tapered branches visible below the canopy.
+ for(let b=0;b<5;b++){
+  const a=seed*Math.PI*2+b*2.399,baseY=(1.65+b*.52)*s,len=(1.15+(b%3)*.22)*s;
+  const branch=new THREE.Mesh(new THREE.CylinderGeometry(.025*s,.085*s,len,5),barkMat);
+  branch.position.set(x+Math.cos(a)*len*.34,y+baseY+len*.28,z+Math.sin(a)*len*.34);
+  branch.rotation.z=Math.cos(a)*-.78;branch.rotation.x=Math.sin(a)*.78;branch.rotation.y=a;
   branch.castShadow=true;scene.add(branch);
  }
- // Layered, angular foliage clusters make each tree read as a leafy crown,
- // with uneven edges and gaps rather than three smooth green balls.
- const clusters=5;
- for(let j=0;j<clusters;j++){
-  const a=seed*6.28+j*2.399,ring=j===0?0:(.72+(j%2)*.18)*s;
-  const crown=new THREE.Mesh(new THREE.DodecahedronGeometry(1,1),leafMats[Math.floor(Math.abs(Math.sin(x*7+z*3+j*1.7))*leafMats.length)]);
-  const scale=(j===0?1.45:.94+(j%3)*.12)*s;
-  crown.position.set(x+Math.cos(a)*ring,y+(4.35+(j===0?1.45:(j%3)*.72))*s,z+Math.sin(a)*ring*.78);
-  crown.scale.set(scale*(.92+seed*.12),scale*(1.12+(j%2)*.12),scale*(.88+(j%3)*.07));
-  crown.rotation.set(Math.sin(a)*.22, a, Math.cos(a)*.16);
-  crown.castShadow=true;crown.receiveShadow=true;scene.add(crown);
+ // Three overlapping conical foliage tiers create a clearly readable,
+ // irregular evergreen profile; each tree gets slightly different angles.
+ const tiers=[
+  {h:3.05,r:1.95,cy:3.25},
+  {h:2.85,r:1.57,cy:4.45},
+  {h:2.65,r:1.12,cy:5.55}
+ ];
+ for(let j=0;j<tiers.length;j++){
+  const t=tiers[j],cone=new THREE.Mesh(new THREE.ConeGeometry(t.r*s,t.h*s,7,1),leafMats[Math.floor(Math.abs(Math.sin(x*7+z*3+j*1.7))*leafMats.length)]);
+  cone.position.set(x+Math.sin(seed*9+j*2)*.22*s,y+t.cy*s,z+Math.cos(seed*8+j*1.8)*.18*s);
+  cone.rotation.y=seed*6.28+j*.7;cone.rotation.z=Math.sin(seed*12+j)*.045;
+  cone.castShadow=true;cone.receiveShadow=true;scene.add(cone);
+ }
+ // A few small angular foliage tufts break up the otherwise clean tier edges.
+ for(let j=0;j<3;j++){
+  const a=seed*6.28+j*2.094,tuft=new THREE.Mesh(new THREE.IcosahedronGeometry(.66*s,0),leafMats[(j+Math.floor(seed*3))%leafMats.length]);
+  tuft.position.set(x+Math.cos(a)*.82*s,y+(3.05+(j%2)*.75)*s,z+Math.sin(a)*.68*s);
+  tuft.scale.set(.8,1.25,.82);tuft.rotation.set(.2*Math.sin(a),a,.16*Math.cos(a));tuft.castShadow=true;scene.add(tuft);
  }
  objects.push({x,z,r:1.05*s,type:'tree'});
 }
