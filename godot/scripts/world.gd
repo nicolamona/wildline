@@ -455,7 +455,7 @@ func _build_hud() -> void:
 	move_zone.anchor_top = 0.34
 	move_zone.anchor_bottom = 1.0
 	move_zone.mouse_filter = Control.MOUSE_FILTER_PASS
-	move_zone.gui_input.connect(_on_move_zone_input)
+	# Touch is routed centrally in _input; Control.gui_input can miss mobile web drags.
 	hud.add_child(move_zone)
 	var look_zone := Control.new()
 	look_zone.name = "LookTouchZone"
@@ -464,7 +464,6 @@ func _build_hud() -> void:
 	look_zone.anchor_top = 0.0
 	look_zone.anchor_bottom = 1.0
 	look_zone.mouse_filter = Control.MOUSE_FILTER_PASS
-	look_zone.gui_input.connect(_on_look_zone_input)
 	hud.add_child(look_zone)
 	mission_label = Label.new()
 	mission_label.position = Vector2(22, 18)
@@ -547,6 +546,41 @@ func _build_hud() -> void:
 	hint.add_theme_color_override("font_color", Color(0.77, 0.82, 0.73))
 	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(hint)
+
+func _input(event: InputEvent) -> void:
+	# Route mobile web touch events before GUI propagation; capture by finger index.
+	# This avoids depending on Control.gui_input delivery, which can fail for HTML5 touch drags.
+	if player == null:
+		return
+	var viewport_size := get_viewport().get_visible_rect().size
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			if touch.index == move_touch_index or touch.index == look_touch_index:
+				return
+			if touch.position.x < viewport_size.x * 0.48 and touch.position.y > viewport_size.y * 0.34 and move_touch_index == -1:
+				move_touch_index = touch.index
+				move_touch_origin = touch.position
+				player.move_input = Vector2.ZERO
+			elif touch.position.x >= viewport_size.x * 0.48 and look_touch_index == -1:
+				look_touch_index = touch.index
+		else:
+			if touch.index == move_touch_index:
+				move_touch_index = -1
+				player.move_input = Vector2.ZERO
+			if touch.index == look_touch_index:
+				look_touch_index = -1
+	elif event is InputEventScreenDrag:
+		var drag_event := event as InputEventScreenDrag
+		if drag_event.index == move_touch_index:
+			var drag := drag_event.position - move_touch_origin
+			var distance := drag.length()
+			if distance < 8.0:
+				player.move_input = Vector2.ZERO
+			else:
+				player.move_input = drag.normalized() * clampf((distance - 8.0) / 42.0, 0.0, 1.0)
+		elif drag_event.index == look_touch_index:
+			player.apply_look_delta(drag_event.relative)
 
 func _on_move_zone_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
