@@ -25,8 +25,13 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
+		var viewport_size := get_viewport().get_visible_rect().size
+		# Reserve the lower-right HUD button area for GUI interaction, not camera look.
+		var over_interact_button := event.position.x >= viewport_size.x - 190.0 and event.position.y >= viewport_size.y - 125.0
 		if event.pressed:
-			if event.position.x < get_viewport().get_visible_rect().size.x * 0.48 and left_touch_index == -1:
+			if over_interact_button:
+				return
+			if event.position.x < viewport_size.x * 0.48 and left_touch_index == -1:
 				left_touch_index = event.index
 				left_touch_origin = event.position
 			elif right_touch_index == -1:
