@@ -45,6 +45,10 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
+		# A mobile browser may emit both mouse and touch events for one finger.
+		# If the mouse fallback owns this gesture, do not misclassify it as look.
+		if left_touch_index == -2:
+			return
 		# Keep the lower-right interaction button independent from movement/look.
 		var over_interact_button: bool = event.position.x >= viewport_size.x - 190.0 and event.position.y >= viewport_size.y - 125.0
 		if event.pressed:
@@ -64,7 +68,9 @@ func _input(event: InputEvent) -> void:
 			if event.index == right_touch_index:
 				right_touch_index = -1
 	elif event is InputEventScreenDrag:
-		if event.index == left_touch_index:
+		if left_touch_index == -2:
+			_update_move_from_drag(event.position - left_touch_origin)
+		elif event.index == left_touch_index:
 			_update_move_from_drag(event.position - left_touch_origin)
 		elif event.index == right_touch_index:
 			_apply_look(event.relative)
