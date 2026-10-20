@@ -86,6 +86,9 @@ jobs:
       - name: Import project and scan scripts
         run: godot --headless --editor --path godot --quit
 
+      - name: Install Android build template into project
+        run: godot --headless --editor --path godot --install-android-build-template
+
       - name: Boot the prototype scene
         run: godot --headless --path godot --quit-after 120 --verbose
 
@@ -109,20 +112,21 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$HOME/.android/debug.keystore"
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
-          mkdir -p build
-          if ! godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose 2>&1 | tee build/android-export.log || ! test -s build/WILDLINE-debug.apk; then
+          mkdir -p godot/build
+          APK_PATH="$GITHUB_WORKSPACE/godot/build/WILDLINE-debug.apk"
+          if ! godot --headless --path godot --export-debug "Android" "$APK_PATH" --verbose 2>&1 | tee godot/build/android-export.log || ! test -s "$APK_PATH"; then
             echo "Direct APK export failed; retrying with Godot Gradle build."
-            rm -f build/WILDLINE-debug.apk
+            rm -f "$APK_PATH"
             sed -i 's#gradle_build/use_gradle_build=false#gradle_build/use_gradle_build=true#' godot/export_presets.cfg
-            godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose 2>&1 | tee build/android-gradle-export.log
+            godot --headless --path godot --export-debug "Android" "$APK_PATH" --verbose 2>&1 | tee godot/build/android-gradle-export.log
           fi
-          test -s build/WILDLINE-debug.apk
+          test -s "$APK_PATH"
 
       - name: Upload Android APK for device testing
         uses: actions/upload-artifact@v4
         with:
           name: WILDLINE-Android-debug
-          path: build/WILDLINE-debug.apk
+          path: godot/build/WILDLINE-debug.apk
           if-no-files-found: error
           retention-days: 7
 
@@ -136,9 +140,9 @@ jobs:
           TITLE="WILDLINE Android Test APK"
           NOTES="APK de prueba de WILDLINE generado desde la rama godot-prototype. Es una compilación de diagnóstico, no una versión final."
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" build/WILDLINE-debug.apk --clobber
+            gh release upload "$TAG" godot/build/WILDLINE-debug.apk --clobber
             gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --prerelease
           else
-            gh release create "$TAG" build/WILDLINE-debug.apk --title "$TITLE" --notes "$NOTES" --prerelease --latest=false
+            gh release create "$TAG" godot/build/WILDLINE-debug.apk --title "$TITLE" --notes "$NOTES" --prerelease --latest=false
           fi
           gh release view "$TAG" --json url,assets
