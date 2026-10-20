@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -125,3 +125,17 @@ jobs:
           path: build/WILDLINE-debug.apk
           if-no-files-found: error
           retention-days: 7
+
+      - name: Publish installable APK for Android testing
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-debug-latest
+          name: WILDLINE Android Test APK
+          body: |
+            APK de prueba de WILDLINE generado desde la rama godot-prototype.
+            Es una compilación de diagnóstico, no una versión final.
+          prerelease: true
+          make_latest: false
+          files: build/WILDLINE-debug.apk
+          fail_on_unmatched_files: true
+          overwrite_files: true
