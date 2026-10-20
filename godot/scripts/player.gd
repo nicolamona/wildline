@@ -32,7 +32,7 @@ func _input(event: InputEvent) -> void:
 			if over_interact_button:
 				return
 			# Movement starts only in the visible lower-left joystick zone.
-			var in_move_zone := event.position.x < viewport_size.x * 0.46 and event.position.y > viewport_size.y * 0.48
+			var in_move_zone: bool = event.position.x < viewport_size.x * 0.50
 			if in_move_zone and left_touch_index == -1:
 				left_touch_index = event.index
 				left_touch_origin = event.position
