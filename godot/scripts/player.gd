@@ -31,9 +31,12 @@ func _input(event: InputEvent) -> void:
 		if event.pressed:
 			if over_interact_button:
 				return
-			if event.position.x < viewport_size.x * 0.48 and left_touch_index == -1:
+			# Movement starts only in the visible lower-left joystick zone.
+			var in_move_zone := event.position.x < viewport_size.x * 0.46 and event.position.y > viewport_size.y * 0.48
+			if in_move_zone and left_touch_index == -1:
 				left_touch_index = event.index
 				left_touch_origin = event.position
+				move_input = Vector2.ZERO
 			elif right_touch_index == -1:
 				right_touch_index = event.index
 		else:
@@ -44,8 +47,12 @@ func _input(event: InputEvent) -> void:
 				right_touch_index = -1
 	elif event is InputEventScreenDrag:
 		if event.index == left_touch_index:
-			var delta: Vector2 = (event.position - left_touch_origin) / 72.0
-			move_input = Vector2(clampf(delta.x, -1.0, 1.0), clampf(delta.y, -1.0, 1.0))
+			var drag: Vector2 = event.position - left_touch_origin
+			if drag.length() < 10.0:
+				move_input = Vector2.ZERO
+			else:
+				var delta: Vector2 = drag / 64.0
+				move_input = Vector2(clampf(delta.x, -1.0, 1.0), clampf(delta.y, -1.0, 1.0))
 		elif event.index == right_touch_index:
 			_apply_look(event.relative)
 
