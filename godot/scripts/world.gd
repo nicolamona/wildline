@@ -12,6 +12,8 @@ var message_label: Label
 var message_timer := 0.0
 var rng := RandomNumberGenerator.new()
 var material_cache: Dictionary = {}
+var joystick_gui_active := false
+var joystick_gui_origin := Vector2.ZERO
 
 func _ready() -> void:
 	rng.seed = 140721
@@ -495,7 +497,9 @@ func _build_hud() -> void:
 	joystick_base.offset_right = 136
 	joystick_base.offset_top = -150
 	joystick_base.offset_bottom = -38
-	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Capture movement directly through Godot GUI input on mobile browsers.
+	joystick_base.mouse_filter = Control.MOUSE_FILTER_STOP
+	joystick_base.gui_input.connect(_on_joystick_gui_input.bind(joystick_base))
 	joystick_base.add_theme_stylebox_override("panel", _hud_panel(Color(0.035, 0.075, 0.065, 0.45), Color(0.65, 0.74, 0.56, 0.62)))
 	hud.add_child(joystick_base)
 	var joystick_label := Label.new()
@@ -520,6 +524,39 @@ func _build_hud() -> void:
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.77, 0.82, 0.73))
 	hud.add_child(hint)
+
+func _on_joystick_gui_input(event: InputEvent, pad: Control) -> void:
+	if not is_instance_valid(player):
+		return
+	var local_position: Vector2 = pad.get_local_mouse_position()
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			joystick_gui_active = true
+			joystick_gui_origin = event.position
+			player.move_input = Vector2.ZERO
+		else:
+			joystick_gui_active = false
+			player.move_input = Vector2.ZERO
+	elif event is InputEventScreenDrag and joystick_gui_active:
+		player.move_input = _joystick_vector(event.position - joystick_gui_origin)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			joystick_gui_active = true
+			joystick_gui_origin = local_position
+			player.move_input = Vector2.ZERO
+		else:
+			joystick_gui_active = false
+			player.move_input = Vector2.ZERO
+	elif event is InputEventMouseMotion and joystick_gui_active:
+		player.move_input = _joystick_vector(local_position - joystick_gui_origin)
+	if event is InputEventScreenTouch or event is InputEventScreenDrag or event is InputEventMouseButton or event is InputEventMouseMotion:
+		pad.accept_event()
+
+func _joystick_vector(drag: Vector2) -> Vector2:
+	var distance := drag.length()
+	if distance < 8.0:
+		return Vector2.ZERO
+	return Vector2(drag.x, drag.y).normalized() * minf(distance / 42.0, 1.0)
 
 func _hud_panel(fill: Color, border_color: Color) -> StyleBoxFlat:
 	var panel := StyleBoxFlat.new()
