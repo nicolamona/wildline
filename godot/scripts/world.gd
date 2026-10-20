@@ -137,7 +137,9 @@ func _add_tree(pos: Vector3, scale_factor: float) -> void:
 	var greens := [Color(0.09, 0.20, 0.13), Color(0.12, 0.25, 0.15), Color(0.16, 0.29, 0.17), Color(0.10, 0.23, 0.16)]
 	for level in range(4):
 		var crown := MeshInstance3D.new()
-		var cone := ConeMesh.new()
+		# A zero-radius top on CylinderMesh creates a pointed, low-poly crown.
+		var cone := CylinderMesh.new()
+		cone.top_radius = 0.0
 		cone.bottom_radius = 2.25 - float(level) * 0.25
 		cone.height = 3.0 - float(level) * 0.25
 		cone.radial_segments = 7
