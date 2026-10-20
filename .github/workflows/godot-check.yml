@@ -19,55 +19,61 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    container:
-      image: barichello/godot-ci:4.4.1
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Report Godot version
-        run: godot --version
+      - name: Install Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
 
-      - name: Configure Android export prerequisites
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          set -euxo pipefail
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -x "$ANDROID_HOME/platform-tools/adb"
+
+      - name: Install Godot 4.4.1 and Android export templates
         shell: bash
         run: |
           set -euxo pipefail
-
-          # Install the official export templates matching Godot 4.4.1.
-          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
-          mkdir -p "$TEMPLATE_DIR"
+          wget -q "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip" -O /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          sudo install -m 0755 /tmp/godot-bin/Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
           wget -q "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz" -O /tmp/godot-templates.tpz
-          mkdir -p /tmp/godot-templates
+          mkdir -p /tmp/godot-templates "$HOME/.local/share/godot/export_templates/4.4.1.stable"
           unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
-          cp /tmp/godot-templates/templates/* "$TEMPLATE_DIR/"
-          test -s "$TEMPLATE_DIR/android_debug.apk"
-          test -s "$TEMPLATE_DIR/android_release.apk"
+          cp /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_release.apk"
+          godot --version
 
-          # Resolve SDK/JDK locations from the CI image and create an ephemeral debug key.
-          JAVA_BIN="$(readlink -f "$(command -v javac)")"
-          JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
-          ANDROID_SDK_PATH="${ANDROID_HOME:-/usr/lib/android-sdk}"
-          test -x "$JAVA_HOME/bin/java"
-          test -x "$ANDROID_SDK_PATH/platform-tools/adb"
-
+      - name: Configure Godot Android export settings
+        shell: bash
+        run: |
+          set -euxo pipefail
           mkdir -p "$HOME/.android" "$HOME/.config/godot"
-          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/.android/debug.keystore" -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
-
+          keytool -storetype JKS -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/.android/debug.keystore" -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
           cat > "$HOME/.config/godot/editor_settings-4.4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
           export/android/java_sdk_path = "$JAVA_HOME"
-          export/android/android_sdk_path = "$ANDROID_SDK_PATH"
+          export/android/android_sdk_path = "$ANDROID_HOME"
           export/android/debug_keystore = "$HOME/.android/debug.keystore"
           export/android/debug_keystore_user = "androiddebugkey"
           export/android/debug_keystore_pass = "android"
           export/android/force_system_user = false
           EOF
-
-          echo "Java: $JAVA_HOME"
-          echo "Android SDK: $ANDROID_SDK_PATH"
-          echo "Godot Android templates installed."
+          test -x "$JAVA_HOME/bin/java"
+          test -x "$ANDROID_HOME/platform-tools/adb"
 
       - name: Import project and scan scripts
         run: godot --headless --editor --path godot --quit
