@@ -21,25 +21,38 @@ func _ready() -> void:
 	camera.rotation.x = float(GameState.player.get("pitch", 0.0))
 
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios"):
-			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		_apply_look(event.relative)
+	var mobile_input := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	if event is InputEventMouseButton:
+		if not mobile_input:
+			if event.pressed:
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		elif event.button_index == MOUSE_BUTTON_LEFT:
+			# Fallback for mobile browsers that deliver a touch as mouse input.
+			if event.pressed and left_touch_index == -1 and event.position.x < viewport_size.x * 0.62:
+				left_touch_index = -2
+				left_touch_origin = _joystick_origin_for(event.position, viewport_size)
+				move_input = Vector2.ZERO
+			elif not event.pressed and left_touch_index == -2:
+				left_touch_index = -1
+				move_input = Vector2.ZERO
+	elif event is InputEventMouseMotion:
+		if not mobile_input and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			_apply_look(event.relative)
+		elif mobile_input and left_touch_index == -2 and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			_update_move_from_drag(event.position - left_touch_origin)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
-		var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 		# Keep the lower-right interaction button independent from movement/look.
 		var over_interact_button: bool = event.position.x >= viewport_size.x - 190.0 and event.position.y >= viewport_size.y - 125.0
 		if event.pressed:
 			if over_interact_button:
 				return
-			# The left 62% is the movement area; the remaining area controls the camera.
 			var in_move_zone: bool = event.position.x < viewport_size.x * 0.62
 			if in_move_zone and left_touch_index == -1:
 				left_touch_index = event.index
-				left_touch_origin = event.position
+				left_touch_origin = _joystick_origin_for(event.position, viewport_size)
 				move_input = Vector2.ZERO
 			elif right_touch_index == -1:
 				right_touch_index = event.index
@@ -51,31 +64,33 @@ func _input(event: InputEvent) -> void:
 				right_touch_index = -1
 	elif event is InputEventScreenDrag:
 		if event.index == left_touch_index:
-			# Use the finger's displacement from its starting point as a virtual joystick.
-			var drag: Vector2 = event.position - left_touch_origin
-			if drag.length() < 8.0:
-				move_input = Vector2.ZERO
-			else:
-				move_input = Vector2(
-					clampf(drag.x / 58.0, -1.0, 1.0),
-					clampf(-drag.y / 58.0, -1.0, 1.0)
-				)
+			_update_move_from_drag(event.position - left_touch_origin)
 		elif event.index == right_touch_index:
 			_apply_look(event.relative)
 		else:
-			# Recovery path for mobile browsers that deliver a drag without its initial touch.
-			var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+			# Recovery path for browsers that omit the initial touch event.
 			if event.position.x < viewport_size.x * 0.62 and left_touch_index == -1:
 				left_touch_index = event.index
-				left_touch_origin = event.position - event.relative
-				var drag: Vector2 = event.position - left_touch_origin
-				move_input = Vector2(
-					clampf(drag.x / 58.0, -1.0, 1.0),
-					clampf(-drag.y / 58.0, -1.0, 1.0)
-				)
+				left_touch_origin = _joystick_origin_for(event.position - event.relative, viewport_size)
+				_update_move_from_drag(event.position - left_touch_origin)
 			elif right_touch_index == -1:
 				right_touch_index = event.index
 				_apply_look(event.relative)
+
+func _joystick_origin_for(touch_position: Vector2, viewport_size: Vector2) -> Vector2:
+	# Touching the visible pad uses its fixed center; elsewhere the pad floats under the finger.
+	if touch_position.x <= 160.0 and touch_position.y >= viewport_size.y - 180.0:
+		return Vector2(80.0, viewport_size.y - 94.0)
+	return touch_position
+
+func _update_move_from_drag(drag: Vector2) -> void:
+	# Radial dead zone avoids drift; normalize diagonals so they are not faster.
+	var distance := drag.length()
+	if distance < 10.0:
+		move_input = Vector2.ZERO
+		return
+	var strength := minf(distance / 58.0, 1.0)
+	move_input = Vector2(drag.x, -drag.y).normalized() * strength
 
 func _apply_look(relative: Vector2) -> void:
 	rotation.y -= relative.x * look_sensitivity
