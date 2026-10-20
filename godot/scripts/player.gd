@@ -26,13 +26,13 @@ func _input(event: InputEvent) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
 		var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-		# Reserve the lower-right HUD button area for GUI interaction, not camera look.
+		# Keep the lower-right interaction button independent from movement/look.
 		var over_interact_button: bool = event.position.x >= viewport_size.x - 190.0 and event.position.y >= viewport_size.y - 125.0
 		if event.pressed:
 			if over_interact_button:
 				return
-			# Movement starts only in the visible lower-left joystick zone.
-			var in_move_zone: bool = event.position.x < viewport_size.x * 0.50
+			# The left 62% is the movement area; the remaining area controls the camera.
+			var in_move_zone: bool = event.position.x < viewport_size.x * 0.62
 			if in_move_zone and left_touch_index == -1:
 				left_touch_index = event.index
 				left_touch_origin = event.position
@@ -47,14 +47,31 @@ func _input(event: InputEvent) -> void:
 				right_touch_index = -1
 	elif event is InputEventScreenDrag:
 		if event.index == left_touch_index:
+			# Use the finger's displacement from its starting point as a virtual joystick.
 			var drag: Vector2 = event.position - left_touch_origin
-			if drag.length() < 10.0:
+			if drag.length() < 8.0:
 				move_input = Vector2.ZERO
 			else:
-				var delta: Vector2 = drag / 64.0
-				move_input = Vector2(clampf(delta.x, -1.0, 1.0), clampf(delta.y, -1.0, 1.0))
+				move_input = Vector2(
+					clampf(drag.x / 58.0, -1.0, 1.0),
+					clampf(-drag.y / 58.0, -1.0, 1.0)
+				)
 		elif event.index == right_touch_index:
 			_apply_look(event.relative)
+		else:
+			# Recovery path for mobile browsers that deliver a drag without its initial touch.
+			var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+			if event.position.x < viewport_size.x * 0.62 and left_touch_index == -1:
+				left_touch_index = event.index
+				left_touch_origin = event.position - event.relative
+				var drag: Vector2 = event.position - left_touch_origin
+				move_input = Vector2(
+					clampf(drag.x / 58.0, -1.0, 1.0),
+					clampf(-drag.y / 58.0, -1.0, 1.0)
+				)
+			elif right_touch_index == -1:
+				right_touch_index = event.index
+				_apply_look(event.relative)
 
 func _apply_look(relative: Vector2) -> void:
 	rotation.y -= relative.x * look_sensitivity
