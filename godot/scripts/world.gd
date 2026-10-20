@@ -14,6 +14,8 @@ var rng := RandomNumberGenerator.new()
 var material_cache: Dictionary = {}
 var joystick_gui_active := false
 var joystick_gui_origin := Vector2.ZERO
+var movement_holds: Dictionary = {}
+var mouse_move_active := false
 
 func _ready() -> void:
 	rng.seed = 140721
@@ -26,6 +28,74 @@ func _ready() -> void:
 	_build_hud()
 	GameState.changed.connect(_refresh_hud)
 	_refresh_hud()
+
+func _input(event: InputEvent) -> void:
+	# Respaldo de movimiento independiente del sistema GUI de Godot.
+	# En algunos navegadores móviles los Button se dibujan pero no reciben
+	# correctamente el toque; aquí leemos el área del D-pad desde el viewport.
+	var viewport_size := get_viewport().get_visible_rect().size
+	if event is InputEventScreenTouch:
+		var key := "touch_%d" % event.index
+		if event.pressed:
+			var direction := _dpad_direction(event.position, viewport_size)
+			if direction != Vector2.ZERO:
+				movement_holds[key] = direction
+				_apply_dpad_holds()
+		elif movement_holds.has(key):
+			movement_holds.erase(key)
+			_apply_dpad_holds()
+	elif event is InputEventScreenDrag:
+		var key := "touch_%d" % event.index
+		if movement_holds.has(key):
+			var direction := _dpad_direction(event.position, viewport_size)
+			if direction != Vector2.ZERO:
+				movement_holds[key] = direction
+				_apply_dpad_holds()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			var direction := _dpad_direction(event.position, viewport_size)
+			if direction != Vector2.ZERO:
+				mouse_move_active = true
+				movement_holds["mouse"] = direction
+				_apply_dpad_holds()
+		elif mouse_move_active:
+			mouse_move_active = false
+			movement_holds.erase("mouse")
+			_apply_dpad_holds()
+	elif event is InputEventMouseMotion and mouse_move_active:
+		var direction := _dpad_direction(event.position, viewport_size)
+		if direction != Vector2.ZERO:
+			movement_holds["mouse"] = direction
+			_apply_dpad_holds()
+
+func _dpad_direction(position: Vector2, viewport_size: Vector2) -> Vector2:
+	var x := position.x
+	var y := position.y - viewport_size.y
+	# Amplía ligeramente las zonas de toque sin invadir el botón Interactuar.
+	if x >= 20.0 and x <= 66.0 and y >= -116.0 and y <= -38.0:
+		if y <= -104.0:
+			return Vector2(0, -1)
+		if y >= -78.0:
+			return Vector2(0, 1)
+	if x >= 20.0 and x <= 66.0 and y >= -150.0 and y <= -104.0:
+		return Vector2(0, -1)
+	if x >= 66.0 and x <= 98.0 and y >= -116.0 and y <= -38.0:
+		return Vector2(0, 1)
+	if x >= 66.0 and x <= 140.0 and y >= -150.0 and y <= -38.0:
+		if x < 98.0:
+			return Vector2(0, 1) if y > -112.0 else Vector2(0, -1)
+		return Vector2(1, 0) if y >= -116.0 and y <= -38.0 else Vector2.ZERO
+	if x >= 20.0 and x <= 64.0 and y >= -116.0 and y <= -38.0:
+		return Vector2(-1, 0)
+	return Vector2.ZERO
+
+func _apply_dpad_holds() -> void:
+	if not is_instance_valid(player):
+		return
+	var combined := Vector2.ZERO
+	for direction in movement_holds.values():
+		combined += direction
+	player.move_input = combined.normalized() if combined.length() > 0.0 else Vector2.ZERO
 
 func _process(delta: float) -> void:
 	if message_timer > 0.0:
