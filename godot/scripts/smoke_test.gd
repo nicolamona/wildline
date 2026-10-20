@@ -40,28 +40,41 @@ func _run_smoke_test() -> void:
 		quit(1)
 		return
 
-	# Regression test: verify the GUI button callbacks set and release all directions.
-	var world := scene
-	var expected_directions := [Vector2(0, -1), Vector2(-1, 0), Vector2(1, 0), Vector2(0, 1)]
-	if world.dpad_buttons.size() != 4:
-		push_error("SMOKE TEST FAILED: expected four mobile D-pad buttons")
+	# Regression test: explicit touch zones and movement drag/release behavior.
+	var move_zone := scene.get_node_or_null("CanvasLayer/Control/MoveTouchZone") as Control
+	var look_zone := scene.get_node_or_null("CanvasLayer/Control/LookTouchZone") as Control
+	if move_zone == null or look_zone == null:
+		push_error("SMOKE TEST FAILED: explicit move/look touch zones are missing")
 		quit(1)
 		return
-	for i in range(world.dpad_buttons.size()):
-		var entry: Dictionary = world.dpad_buttons[i]
-		var move_button := entry["button"] as Button
-		var direction: Vector2 = entry["direction"]
-		world._on_move_button_down(direction)
-		if player.move_input != expected_directions[i]:
-			push_error("SMOKE TEST FAILED: D-pad %d produced %s" % [i, player.move_input])
-			quit(1)
-			return
-		world._on_move_button_up()
-		if player.move_input != Vector2.ZERO:
-			push_error("SMOKE TEST FAILED: D-pad %d did not release movement" % i)
-			quit(1)
-			return
-	print("WILDLINE_SMOKE_TEST: PASS | GUI D-pad callbacks: 4 directions")
+	if move_zone.mouse_filter != Control.MOUSE_FILTER_PASS or look_zone.mouse_filter != Control.MOUSE_FILTER_PASS:
+		push_error("SMOKE TEST FAILED: touch zones must pass GUI events without swallowing desktop input")
+		quit(1)
+		return
+	var touch_down := InputEventScreenTouch.new()
+	touch_down.index = 17
+	touch_down.pressed = true
+	touch_down.position = Vector2(80, 100)
+	world._on_move_zone_input(touch_down)
+	var touch_drag := InputEventScreenDrag.new()
+	touch_drag.index = 17
+	touch_drag.position = Vector2(80, 40)
+	touch_drag.relative = Vector2(0, -60)
+	world._on_move_zone_input(touch_drag)
+	if player.move_input.y >= -0.5:
+		push_error("SMOKE TEST FAILED: upward touch drag must move player forward; got %s" % player.move_input)
+		quit(1)
+		return
+	var touch_up := InputEventScreenTouch.new()
+	touch_up.index = 17
+	touch_up.pressed = false
+	touch_up.position = Vector2(80, 40)
+	world._on_move_zone_input(touch_up)
+	if player.move_input != Vector2.ZERO:
+		push_error("SMOKE TEST FAILED: releasing touch must stop movement")
+		quit(1)
+		return
+	print("WILDLINE_SMOKE_TEST: PASS | touch zones + drag direction + release")
 	print("Player/camera: OK | MeshInstance3D: %d | CollisionShape3D: %d | Buttons: %d" % [mesh_count, collision_count, button_count])
 	quit(0)
 
