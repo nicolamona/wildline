@@ -498,8 +498,8 @@ func _build_hud() -> void:
 	joystick_base.offset_top = -150
 	joystick_base.offset_bottom = -38
 	# Capture movement directly through Godot GUI input on mobile browsers.
-	joystick_base.mouse_filter = Control.MOUSE_FILTER_STOP
-	joystick_base.gui_input.connect(_on_joystick_gui_input.bind(joystick_base))
+	# The parent panel must never consume touch input; let each arrow Button own it.
+	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_base.add_theme_stylebox_override("panel", _hud_panel(Color(0.035, 0.075, 0.065, 0.45), Color(0.65, 0.74, 0.56, 0.62)))
 	hud.add_child(joystick_base)
 	var joystick_label := Label.new()
@@ -553,33 +553,6 @@ func _on_move_button_down(direction: Vector2) -> void:
 func _on_move_button_up() -> void:
 	if is_instance_valid(player):
 		player.move_input = Vector2.ZERO
-
-func _on_joystick_gui_input(event: InputEvent, pad: Control) -> void:
-	if not is_instance_valid(player):
-		return
-	var local_position: Vector2 = pad.get_local_mouse_position()
-	if event is InputEventScreenTouch:
-		if event.pressed:
-			joystick_gui_active = true
-			joystick_gui_origin = event.position
-			player.move_input = Vector2.ZERO
-		else:
-			joystick_gui_active = false
-			player.move_input = Vector2.ZERO
-	elif event is InputEventScreenDrag and joystick_gui_active:
-		player.move_input = _joystick_vector(event.position - joystick_gui_origin)
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			joystick_gui_active = true
-			joystick_gui_origin = local_position
-			player.move_input = Vector2.ZERO
-		else:
-			joystick_gui_active = false
-			player.move_input = Vector2.ZERO
-	elif event is InputEventMouseMotion and joystick_gui_active:
-		player.move_input = _joystick_vector(local_position - joystick_gui_origin)
-	if event is InputEventScreenTouch or event is InputEventScreenDrag or event is InputEventMouseButton or event is InputEventMouseMotion:
-		pad.accept_event()
 
 func _joystick_vector(drag: Vector2) -> Vector2:
 	var distance := drag.length()
