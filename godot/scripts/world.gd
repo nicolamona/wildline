@@ -509,31 +509,40 @@ func _build_hud() -> void:
 	button.add_theme_font_size_override("font_size", 22)
 	button.pressed.connect(_on_interact_pressed)
 	hud.add_child(button)
-	# Indicador visual; la entrada real la reciben las zonas táctiles.
-	var joystick_base := Panel.new()
-	joystick_base.name = "MoveJoystickGuide"
-	joystick_base.anchor_left = 0.0
-	joystick_base.anchor_right = 0.0
-	joystick_base.anchor_top = 1.0
-	joystick_base.anchor_bottom = 1.0
-	joystick_base.offset_left = 24
-	joystick_base.offset_right = 136
-	joystick_base.offset_top = -150
-	joystick_base.offset_bottom = -38
-	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	joystick_base.add_theme_stylebox_override("panel", _hud_panel(Color(0.035, 0.075, 0.065, 0.45), Color(0.65, 0.74, 0.56, 0.62)))
-	hud.add_child(joystick_base)
-	var joystick_label := Label.new()
-	joystick_label.text = "DESLIZÁ PARA MOVER"
-	joystick_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	joystick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	joystick_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	joystick_label.add_theme_font_size_override("font_size", 11)
-	joystick_label.add_theme_color_override("font_color", Color(0.87, 0.91, 0.79, 0.75))
-	joystick_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	joystick_base.add_child(joystick_label)
+	# Cruceta táctil real como alternativa fiable al gesto de arrastre en móviles.
+	var dpad := Control.new()
+	dpad.name = "MoveDPad"
+	dpad.anchor_left = 0.0
+	dpad.anchor_right = 0.0
+	dpad.anchor_top = 1.0
+	dpad.anchor_bottom = 1.0
+	dpad.offset_left = 20
+	dpad.offset_right = 188
+	dpad.offset_top = -184
+	dpad.offset_bottom = -16
+	dpad.mouse_filter = Control.MOUSE_FILTER_PASS
+	hud.add_child(dpad)
+	var directions := [
+		["▲", Vector2(56, 0), Vector2(56, 56), Vector2(0, -1)],
+		["◀", Vector2(0, 56), Vector2(56, 56), Vector2(-1, 0)],
+		["▼", Vector2(56, 112), Vector2(56, 56), Vector2(0, 1)],
+		["▶", Vector2(112, 56), Vector2(56, 56), Vector2(1, 0)]
+	]
+	for direction in directions:
+		var move_button := Button.new()
+		move_button.text = direction[0]
+		move_button.position = direction[1]
+		move_button.custom_minimum_size = direction[2]
+		move_button.add_theme_font_size_override("font_size", 25)
+		move_button.add_theme_color_override("font_color", Color(0.91, 0.95, 0.82))
+		move_button.add_theme_stylebox_override("normal", _hud_panel(Color(0.035, 0.075, 0.065, 0.78), Color(0.65, 0.74, 0.56, 0.78)))
+		move_button.add_theme_stylebox_override("pressed", _hud_panel(Color(0.18, 0.27, 0.16, 0.96), Color(0.88, 0.83, 0.53, 1.0)))
+		var move_vector: Vector2 = direction[3]
+		move_button.button_down.connect(func(): player.move_input = move_vector)
+		move_button.button_up.connect(func(): player.move_input = Vector2.ZERO)
+		dpad.add_child(move_button)
 	var hint := Label.new()
-	hint.text = "PC: WASD + ratón · Móvil: arrastrá a la izquierda para caminar y a la derecha para mirar"
+	hint.text = "PC: WASD + ratón · Móvil: cruceta o arrastrá a la izquierda; arrastrá a la derecha para mirar"
 	hint.anchor_left = 0.0
 	hint.anchor_right = 1.0
 	hint.anchor_top = 1.0
