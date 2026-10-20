@@ -40,7 +40,36 @@ func _run_smoke_test() -> void:
 		quit(1)
 		return
 
-	print("WILDLINE_SMOKE_TEST: PASS")
+	# Regression test: the world-level fallback must route mobile touch input
+	# even if Godot's GUI Button signals are not emitted by the browser.
+	var viewport_size := scene.get_viewport().get_visible_rect().size
+	var world := scene
+	var dpad_tests := [
+		{"pos": Vector2(80.0, viewport_size.y - 130.0), "expected": Vector2(0, -1), "name": "up"},
+		{"pos": Vector2(44.0, viewport_size.y - 94.0), "expected": Vector2(-1, 0), "name": "left"},
+		{"pos": Vector2(116.0, viewport_size.y - 94.0), "expected": Vector2(1, 0), "name": "right"},
+		{"pos": Vector2(80.0, viewport_size.y - 58.0), "expected": Vector2(0, 1), "name": "down"}
+	]
+	var touch_index := 40
+	for test_case in dpad_tests:
+		var touch := InputEventScreenTouch.new()
+		touch.index = touch_index
+		touch.position = test_case.pos
+		touch.pressed = true
+		world._input(touch)
+		if player.move_input != test_case.expected:
+			push_error("SMOKE TEST FAILED: D-pad %s produced %s" % [test_case.name, player.move_input])
+			quit(1)
+			return
+		touch.pressed = false
+		world._input(touch)
+		if player.move_input != Vector2.ZERO:
+			push_error("SMOKE TEST FAILED: D-pad %s did not release movement" % test_case.name)
+			quit(1)
+			return
+		touch_index += 1
+
+	print("WILDLINE_SMOKE_TEST: PASS | mobile D-pad touch/release: 4 directions")
 	print("Player/camera: OK | MeshInstance3D: %d | CollisionShape3D: %d | Buttons: %d" % [mesh_count, collision_count, button_count])
 	quit(0)
 
