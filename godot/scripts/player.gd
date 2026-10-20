@@ -11,6 +11,8 @@ var motion_enabled := false
 var motion_forward := 0.0
 var motion_turn := 0.0
 var last_shake_count := 0
+var motion_poll_timer := 0.0
+var motion_cache := {}
 @onready var camera: Camera3D = $Camera3D
 
 const WEB_MOTION_INIT := """
@@ -145,13 +147,17 @@ func apply_look_delta(relative: Vector2) -> void:
 func _read_motion_controls() -> void:
 	if not OS.has_feature("web"):
 		return
-	var raw: Variant = JavaScriptBridge.eval("JSON.stringify(window.wildlineMotion || {})", true)
-	if not raw is String or raw.is_empty():
+	motion_poll_timer -= get_physics_process_delta_time()
+	if motion_poll_timer <= 0.0:
+		motion_poll_timer = 0.08
+		var raw: Variant = JavaScriptBridge.eval("JSON.stringify(window.wildlineMotion || {})", true)
+		if raw is String and not raw.is_empty():
+			var parsed := JSON.new()
+			if parsed.parse(raw) == OK and parsed.data is Dictionary:
+				motion_cache = parsed.data
+	if motion_cache.is_empty():
 		return
-	var parsed := JSON.new()
-	if parsed.parse(raw) != OK or not parsed.data is Dictionary:
-		return
-	var data: Dictionary = parsed.data
+	var data: Dictionary = motion_cache
 	motion_enabled = bool(data.get("enabled", false))
 	motion_forward = clampf(float(data.get("forward", 0.0)), -1.0, 1.0)
 	motion_turn = clampf(float(data.get("turn", 0.0)), -1.0, 1.0)
