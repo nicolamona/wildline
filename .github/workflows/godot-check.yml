@@ -44,7 +44,7 @@ jobs:
           set +o pipefail
           yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
           set -o pipefail
-          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "platforms;android-35" "build-tools;35.0.0"
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" "platforms;android-35" "build-tools;35.0.0" "cmdline-tools;latest" "ndk;27.2.12479018" "cmake;3.22.1"
           test -x "$ANDROID_HOME/platform-tools/adb"
 
       - name: Install Godot 4.4.1 and Android export templates
@@ -101,9 +101,15 @@ jobs:
           find build/web -maxdepth 1 -type f -printf '%f %s bytes\\n'
 
       - name: Export Android debug APK
+        shell: bash
         run: |
+          set -euxo pipefail
+          export PATH="$JAVA_HOME/bin:$PATH"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PATH="$HOME/.android/debug.keystore"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
+          export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
           mkdir -p build
-          godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose
+          godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose 2>&1 | tee build/android-export.log
           test -s build/WILDLINE-debug.apk
 
       - name: Upload Android APK for device testing
