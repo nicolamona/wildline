@@ -70,11 +70,16 @@ func _input(event: InputEvent) -> void:
 			_apply_dpad_holds()
 
 func _dpad_direction(position: Vector2, _viewport_size: Vector2) -> Vector2:
-	# Leer los rectángulos reales de los controles evita depender de la resolución,
-	# la relación de aspecto o el escalado que aplica el navegador móvil.
+	# InputEvent.position está en coordenadas del viewport, mientras que los
+	# controles del HUD pueden tener escala/transformación de CanvasLayer.
+	# Convertimos el toque al espacio local de cada botón antes de comprobarlo.
 	for entry in dpad_buttons:
 		var move_button := entry["button"] as Control
-		if is_instance_valid(move_button) and move_button.get_global_rect().grow(12.0).has_point(position):
+		if not is_instance_valid(move_button):
+			continue
+		var local_position: Vector2 = move_button.get_global_transform_with_canvas().affine_inverse() * position
+		var hit_rect := Rect2(Vector2.ZERO, move_button.size).grow(12.0)
+		if hit_rect.has_point(local_position):
 			return entry["direction"] as Vector2
 	return Vector2.ZERO
 
