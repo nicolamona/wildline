@@ -53,6 +53,32 @@ func _run_smoke_test() -> void:
 		push_error("SMOKE TEST FAILED: touch zones must pass GUI events without swallowing desktop input")
 		quit(1)
 		return
+	# Regression test: visible mobile directional pad actually drives the player.
+	var dpad := scene.find_child("MoveDPad", true, false) as Control
+	if dpad == null:
+		push_error("SMOKE TEST FAILED: visible movement pad is missing")
+		quit(1)
+		return
+	var forward_button := dpad.find_child("@Button@0", true, false)
+	# Buttons are created dynamically; find the up arrow by its displayed text.
+	for child in dpad.get_children():
+		if child is Button and child.text == "▲":
+			forward_button = child
+			break
+	if not forward_button is Button:
+		push_error("SMOKE TEST FAILED: forward movement button is missing")
+		quit(1)
+		return
+	forward_button.emit_signal("button_down")
+	if player.move_input != Vector2(0, -1):
+		push_error("SMOKE TEST FAILED: forward button must set forward movement")
+		quit(1)
+		return
+	forward_button.emit_signal("button_up")
+	if player.move_input != Vector2.ZERO:
+		push_error("SMOKE TEST FAILED: releasing forward button must stop movement")
+		quit(1)
+		return
 	var touch_down := InputEventScreenTouch.new()
 	touch_down.index = 17
 	touch_down.pressed = true
