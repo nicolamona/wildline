@@ -507,10 +507,15 @@ func _build_hud() -> void:
 	joystick_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	joystick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	joystick_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	joystick_label.add_theme_font_size_override("font_size", 15)
-	joystick_label.add_theme_color_override("font_color", Color(0.87, 0.91, 0.79, 0.9))
+	joystick_label.add_theme_font_size_override("font_size", 13)
+	joystick_label.add_theme_color_override("font_color", Color(0.87, 0.91, 0.79, 0.75))
 	joystick_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_base.add_child(joystick_label)
+	# Backup directional controls: reliable press-and-hold buttons for mobile browsers.
+	_add_move_button(joystick_base, "▲", Vector2(40, 4), Vector2(32, 32), Vector2(0, -1))
+	_add_move_button(joystick_base, "◀", Vector2(4, 40), Vector2(32, 32), Vector2(-1, 0))
+	_add_move_button(joystick_base, "▶", Vector2(76, 40), Vector2(32, 32), Vector2(1, 0))
+	_add_move_button(joystick_base, "▼", Vector2(40, 76), Vector2(32, 32), Vector2(0, 1))
 	var hint := Label.new()
 	hint.text = "PC: WASD + ratón · Móvil: arrastra desde MOVER (abajo izquierda); desliza a la derecha para mirar"
 	hint.anchor_left = 0.0
@@ -524,6 +529,30 @@ func _build_hud() -> void:
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.77, 0.82, 0.73))
 	hud.add_child(hint)
+
+func _add_move_button(parent: Control, caption: String, offset: Vector2, button_size: Vector2, direction: Vector2) -> void:
+	var move_button := Button.new()
+	move_button.text = caption
+	move_button.position = offset
+	move_button.size = button_size
+	move_button.focus_mode = Control.FOCUS_NONE
+	move_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	move_button.add_theme_font_size_override("font_size", 18)
+	move_button.add_theme_color_override("font_color", Color(0.92, 0.96, 0.84))
+	move_button.add_theme_stylebox_override("normal", _hud_panel(Color(0.055, 0.10, 0.08, 0.82), Color(0.55, 0.69, 0.47, 0.9)))
+	move_button.add_theme_stylebox_override("hover", _hud_panel(Color(0.13, 0.21, 0.13, 0.95), Color(0.79, 0.77, 0.48, 1.0)))
+	move_button.add_theme_stylebox_override("pressed", _hud_panel(Color(0.19, 0.28, 0.15, 0.98), Color(0.9, 0.82, 0.46, 1.0)))
+	move_button.button_down.connect(_on_move_button_down.bind(direction))
+	move_button.button_up.connect(_on_move_button_up)
+	parent.add_child(move_button)
+
+func _on_move_button_down(direction: Vector2) -> void:
+	if is_instance_valid(player):
+		player.move_input = direction
+
+func _on_move_button_up() -> void:
+	if is_instance_valid(player):
+		player.move_input = Vector2.ZERO
 
 func _on_joystick_gui_input(event: InputEvent, pad: Control) -> void:
 	if not is_instance_valid(player):
