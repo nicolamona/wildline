@@ -24,23 +24,24 @@ func _input(event: InputEvent) -> void:
 	var mobile_input := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	if event is InputEventMouseButton:
-		if not mobile_input:
+		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
-				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-		elif event.button_index == MOUSE_BUTTON_LEFT:
-			# Fallback for mobile browsers that deliver a touch as mouse input.
-			if event.pressed and left_touch_index == -1 and event.position.x < viewport_size.x * 0.62:
-				left_touch_index = -2
-				left_touch_origin = _joystick_origin_for(event.position, viewport_size)
-				move_input = Vector2.ZERO
-			elif not event.pressed and left_touch_index == -2:
+				# Some mobile browsers translate touch into mouse events instead
+				# of ScreenTouch. Always allow the lower-left movement pad to work.
+				if left_touch_index == -1 and event.position.x < viewport_size.x * 0.62:
+					left_touch_index = -2
+					left_touch_origin = _joystick_origin_for(event.position, viewport_size)
+					move_input = Vector2.ZERO
+				elif not mobile_input:
+					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+			elif left_touch_index == -2:
 				left_touch_index = -1
 				move_input = Vector2.ZERO
 	elif event is InputEventMouseMotion:
-		if not mobile_input and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-			_apply_look(event.relative)
-		elif mobile_input and left_touch_index == -2 and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		if left_touch_index == -2 and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 			_update_move_from_drag(event.position - left_touch_origin)
+		elif not mobile_input and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+			_apply_look(event.relative)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
