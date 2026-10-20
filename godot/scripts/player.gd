@@ -52,6 +52,10 @@ func _input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
+		# The visible D-pad handles touches in its own area; don't let the
+		# player-level floating joystick claim or cancel those button presses.
+		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
+			return
 		# A mobile browser may emit both mouse and touch events for one finger.
 		# If the mouse fallback owns this gesture, do not misclassify it as look.
 		if left_touch_index == -2:
@@ -75,6 +79,8 @@ func _input(event: InputEvent) -> void:
 			if event.index == right_touch_index:
 				right_touch_index = -1
 	elif event is InputEventScreenDrag:
+		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
+			return
 		if left_touch_index == -2:
 			_update_move_from_drag(event.position - left_touch_origin)
 		elif event.index == left_touch_index:
