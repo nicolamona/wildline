@@ -18,7 +18,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -36,3 +36,16 @@ jobs:
 
       - name: Assert world, player, collision and interaction HUD
         run: godot --headless --path godot --script res://scripts/smoke_test.gd
+
+      - name: Export Android debug APK
+        run: |
+          mkdir -p build
+          godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk
+
+      - name: Upload Android APK for device testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: WILDLINE-Android-debug
+          path: build/WILDLINE-debug.apk
+          if-no-files-found: error
+          retention-days: 7
