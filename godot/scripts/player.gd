@@ -72,6 +72,7 @@ func interact() -> String:
 	var from := camera.global_position
 	var to := from - camera.global_basis.z * 4.5
 	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.exclude = [get_rid()]
 	query.collide_with_areas = true
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit.is_empty():
