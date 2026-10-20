@@ -43,8 +43,8 @@ func _run_smoke_test() -> void:
 	# The instantiated main scene is the World script for this prototype.
 	var world = scene
 	# Regression test: explicit touch zones and movement drag/release behavior.
-	var move_zone := scene.get_node_or_null("CanvasLayer/Control/MoveTouchZone") as Control
-	var look_zone := scene.get_node_or_null("CanvasLayer/Control/LookTouchZone") as Control
+	var move_zone := scene.find_child("MoveTouchZone", true, false) as Control
+	var look_zone := scene.find_child("LookTouchZone", true, false) as Control
 	if move_zone == null or look_zone == null:
 		push_error("SMOKE TEST FAILED: explicit move/look touch zones are missing")
 		quit(1)
@@ -56,13 +56,13 @@ func _run_smoke_test() -> void:
 	var touch_down := InputEventScreenTouch.new()
 	touch_down.index = 17
 	touch_down.pressed = true
-	touch_down.position = Vector2(80, 100)
-	world._on_move_zone_input(touch_down)
+	touch_down.position = Vector2(80, 600)
+	world._input(touch_down)
 	var touch_drag := InputEventScreenDrag.new()
 	touch_drag.index = 17
-	touch_drag.position = Vector2(80, 40)
+	touch_drag.position = Vector2(80, 500)
 	touch_drag.relative = Vector2(0, -60)
-	world._on_move_zone_input(touch_drag)
+	world._input(touch_drag)
 	if player.move_input.y >= -0.5:
 		push_error("SMOKE TEST FAILED: upward touch drag must move player forward; got %s" % player.move_input)
 		quit(1)
@@ -70,8 +70,8 @@ func _run_smoke_test() -> void:
 	var touch_up := InputEventScreenTouch.new()
 	touch_up.index = 17
 	touch_up.pressed = false
-	touch_up.position = Vector2(80, 40)
-	world._on_move_zone_input(touch_up)
+	touch_up.position = Vector2(80, 500)
+	world._input(touch_up)
 	if player.move_input != Vector2.ZERO:
 		push_error("SMOKE TEST FAILED: releasing touch must stop movement")
 		quit(1)
