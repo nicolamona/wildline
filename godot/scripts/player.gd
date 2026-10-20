@@ -21,97 +21,30 @@ func _ready() -> void:
 	camera.rotation.x = float(GameState.player.get("pitch", 0.0))
 
 func _input(event: InputEvent) -> void:
-	var mobile_input := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	# El movimiento táctil pertenece exclusivamente a los cuatro botones GUI
+	# creados en world.gd. Aquí solo se procesa la cámara y el ratón de escritorio.
 	if event is InputEventMouseButton:
-		# The on-screen movement buttons own this area. Do not let the
-		# player's mouse-drag fallback overwrite their hold-to-move input.
-		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
-			return
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			if event.pressed:
-				# Some mobile browsers translate touch into mouse events instead
-				# of ScreenTouch. Always allow the lower-left movement pad to work.
-				if left_touch_index == -1 and event.position.x < viewport_size.x * 0.62:
-					left_touch_index = -2
-					left_touch_origin = _joystick_origin_for(event.position, viewport_size)
-					move_input = Vector2.ZERO
-				elif not mobile_input:
-					Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
-			elif left_touch_index == -2:
-				left_touch_index = -1
-				move_input = Vector2.ZERO
+		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+			if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios"):
+				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event is InputEventMouseMotion:
-		# Keep mouse motion over the visible D-pad away from the floating joystick fallback.
-		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
-			return
-		if left_touch_index == -2 and ((event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
-			_update_move_from_drag(event.position - left_touch_origin)
-		elif not mobile_input and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
+		if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			_apply_look(event.relative)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	elif event is InputEventScreenTouch:
-		# The visible D-pad handles touches in its own area; don't let the
-		# player-level floating joystick claim or cancel those button presses.
-		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
-			return
-		# A mobile browser may emit both mouse and touch events for one finger.
-		# If the mouse fallback owns this gesture, do not misclassify it as look.
-		if left_touch_index == -2:
-			return
-		# Keep the lower-right interaction button independent from movement/look.
+		# No competir con los botones GUI ni con el botón de interacción.
 		var over_interact_button: bool = event.position.x >= viewport_size.x - 190.0 and event.position.y >= viewport_size.y - 125.0
 		if event.pressed:
-			if over_interact_button:
-				return
-			var in_move_zone: bool = event.position.x < viewport_size.x * 0.62
-			if in_move_zone and left_touch_index == -1:
-				left_touch_index = event.index
-				left_touch_origin = _joystick_origin_for(event.position, viewport_size)
-				move_input = Vector2.ZERO
-			elif right_touch_index == -1:
+			if event.position.x >= viewport_size.x * 0.5 and not over_interact_button and right_touch_index == -1:
 				right_touch_index = event.index
 		else:
-			if event.index == left_touch_index:
-				left_touch_index = -1
-				move_input = Vector2.ZERO
 			if event.index == right_touch_index:
 				right_touch_index = -1
 	elif event is InputEventScreenDrag:
-		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
-			return
-		if left_touch_index == -2:
-			_update_move_from_drag(event.position - left_touch_origin)
-		elif event.index == left_touch_index:
-			_update_move_from_drag(event.position - left_touch_origin)
-		elif event.index == right_touch_index:
+		if event.index == right_touch_index:
 			_apply_look(event.relative)
-		else:
-			# Recovery path for browsers that omit the initial touch event.
-			if event.position.x < viewport_size.x * 0.62 and left_touch_index == -1:
-				left_touch_index = event.index
-				left_touch_origin = _joystick_origin_for(event.position - event.relative, viewport_size)
-				_update_move_from_drag(event.position - left_touch_origin)
-			elif right_touch_index == -1:
-				right_touch_index = event.index
-				_apply_look(event.relative)
-
-func _joystick_origin_for(touch_position: Vector2, viewport_size: Vector2) -> Vector2:
-	# Touching the visible pad uses its fixed center; elsewhere the pad floats under the finger.
-	if touch_position.x <= 160.0 and touch_position.y >= viewport_size.y - 180.0:
-		return Vector2(80.0, viewport_size.y - 94.0)
-	return touch_position
-
-func _update_move_from_drag(drag: Vector2) -> void:
-	# Radial dead zone avoids drift; normalize diagonals so they are not faster.
-	var distance := drag.length()
-	if distance < 10.0:
-		move_input = Vector2.ZERO
-		return
-	var strength := minf(distance / 58.0, 1.0)
-	# Screen Y already has the correct sign for Godot local movement: up = negative Z.
-	move_input = Vector2(drag.x, drag.y).normalized() * strength
 
 func _apply_look(relative: Vector2) -> void:
 	rotation.y -= relative.x * look_sensitivity
