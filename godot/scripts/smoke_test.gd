@@ -40,6 +40,8 @@ func _run_smoke_test() -> void:
 		quit(1)
 		return
 
+	# The instantiated main scene is the World script for this prototype.
+	var world = scene
 	# Regression test: explicit touch zones and movement drag/release behavior.
 	var move_zone := scene.get_node_or_null("CanvasLayer/Control/MoveTouchZone") as Control
 	var look_zone := scene.get_node_or_null("CanvasLayer/Control/LookTouchZone") as Control
