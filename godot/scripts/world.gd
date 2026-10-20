@@ -517,7 +517,7 @@ func _build_hud() -> void:
 	_add_move_button(joystick_base, "▶", Vector2(76, 40), Vector2(32, 32), Vector2(1, 0))
 	_add_move_button(joystick_base, "▼", Vector2(40, 76), Vector2(32, 32), Vector2(0, 1))
 	var hint := Label.new()
-	hint.text = "PC: WASD + ratón · Móvil: arrastra desde MOVER (abajo izquierda); desliza a la derecha para mirar"
+	hint.text = "PC: WASD + ratón · Móvil: mantén ▲▼◀▶ para caminar; desliza a la derecha para mirar"
 	hint.anchor_left = 0.0
 	hint.anchor_right = 1.0
 	hint.anchor_top = 1.0
