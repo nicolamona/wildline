@@ -74,6 +74,19 @@ jobs:
             git -C site reset --hard origin/main
             mkdir -p "$GITHUB_WORKSPACE/site/godot-preview"
             cp -a "$GITHUB_WORKSPACE/build/web/." "$GITHUB_WORKSPACE/site/godot-preview/"
+            # Lock the viewport to stop mobile browser/page scrolling.
+            python3 - <<'PY'
+          from pathlib import Path
+          p = Path("site/godot-preview/index.html")
+          html = p.read_text()
+          html = html.replace(
+              "html, body, #canvas {\n\tmargin: 0;\n\tpadding: 0;\n\tborder: 0;\n}",
+              "html, body, #canvas {\n\tmargin: 0;\n\tpadding: 0;\n\tborder: 0;\n}\nhtml, body {\n\twidth: 100%;\n\theight: 100%;\n\toverflow: hidden;\n\toverscroll-behavior: none;\n\ttouch-action: none;\n}\nbody {\n\tposition: fixed;\n\tinset: 0;\n}\n#canvas {\n\twidth: 100%;\n\theight: 100%;\n\ttouch-action: none;\n}"
+          )
+          p.write_text(html)
+          assert "overscroll-behavior: none" in html
+          assert "position: fixed" in html
+          PY
             cat > "$GITHUB_WORKSPACE/site/godot-preview/README.txt" <<'EOF'
           WILDLINE Godot browser preview. Experimental build; separate from the stable root website.
           EOF
