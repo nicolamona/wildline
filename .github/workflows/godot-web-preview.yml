@@ -1,0 +1,75 @@
+name: Publish WILDLINE Godot browser preview
+
+on:
+  push:
+    branches:
+      - godot-prototype
+    paths:
+      - "godot/**"
+      - ".github/workflows/godot-web-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out Godot prototype
+        uses: actions/checkout@v4
+        with:
+          ref: godot-prototype
+          path: source
+
+      - name: Check out stable site without changing its files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+
+      - name: Install Godot and Web export templates
+        shell: bash
+        run: |
+          set -euxo pipefail
+          wget -q "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip" -O /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot-bin
+          sudo install -m 0755 /tmp/godot-bin/Godot_v4.4.1-stable_linux.x86_64 /usr/local/bin/godot
+          wget -q "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz" -O /tmp/godot-templates.tpz
+          mkdir -p /tmp/godot-templates "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
+          cp /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/web_release.zip"
+          godot --version
+
+      - name: Import and validate project
+        run: |
+          godot --headless --editor --path source/godot --quit
+          godot --headless --path source/godot --script res://scripts/smoke_test.gd
+
+      - name: Export Web build into isolated preview folder
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/site/godot-preview"
+          godot --headless --path source/godot --export-release "Web" "$GITHUB_WORKSPACE/site/godot-preview/index.html"
+          test -s "$GITHUB_WORKSPACE/site/godot-preview/index.html"
+          cat > "$GITHUB_WORKSPACE/site/godot-preview/README.txt" <<'EOF'
+          WILDLINE Godot browser preview. Experimental build; separate from the stable root website.
+          EOF
+          find "$GITHUB_WORKSPACE/site/godot-preview" -maxdepth 1 -type f -printf '%f %s bytes\\n'
+
+      - name: Publish preview path while preserving stable root files
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git -C site config user.name "github-actions[bot]"
+          git -C site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C site add godot-preview
+          if ! git -C site diff --cached --quiet; then
+            git -C site commit -m "Publish isolated WILDLINE Godot browser preview"
+            git -C site push origin HEAD:main
+          else
+            echo "Browser preview is already up to date."
+          fi
