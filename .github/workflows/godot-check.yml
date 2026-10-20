@@ -127,15 +127,18 @@ jobs:
           retention-days: 7
 
       - name: Publish installable APK for Android testing
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: android-debug-latest
-          name: WILDLINE Android Test APK
-          body: |
-            APK de prueba de WILDLINE generado desde la rama godot-prototype.
-            Es una compilación de diagnóstico, no una versión final.
-          prerelease: true
-          make_latest: false
-          files: build/WILDLINE-debug.apk
-          fail_on_unmatched_files: true
-          overwrite_files: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euxo pipefail
+          TAG="android-debug-latest"
+          TITLE="WILDLINE Android Test APK"
+          NOTES="APK de prueba de WILDLINE generado desde la rama godot-prototype. Es una compilación de diagnóstico, no una versión final."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" build/WILDLINE-debug.apk --clobber
+            gh release edit "$TAG" --title "$TITLE" --notes "$NOTES" --prerelease
+          else
+            gh release create "$TAG" build/WILDLINE-debug.apk --title "$TITLE" --notes "$NOTES" --prerelease --latest=false
+          fi
+          gh release view "$TAG" --json url,assets
