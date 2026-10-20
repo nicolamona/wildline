@@ -12,9 +12,9 @@ var message_label: Label
 var message_timer := 0.0
 var rng := RandomNumberGenerator.new()
 var material_cache: Dictionary = {}
-var joystick_gui_active := false
-var joystick_gui_origin := Vector2.ZERO
-var dpad_buttons: Array[Dictionary] = []
+var move_touch_index: int = -1
+var look_touch_index: int = -1
+var move_touch_origin := Vector2.ZERO
 
 func _ready() -> void:
 	rng.seed = 140721
@@ -446,15 +446,37 @@ func _build_hud() -> void:
 	hud.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	hud.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(hud)
+	# Zonas táctiles separadas: movimiento a la izquierda y cámara a la derecha.
+	# PASS deja que el ratón de escritorio siga llegando al jugador.
+	var move_zone := Control.new()
+	move_zone.name = "MoveTouchZone"
+	move_zone.anchor_left = 0.0
+	move_zone.anchor_right = 0.48
+	move_zone.anchor_top = 0.34
+	move_zone.anchor_bottom = 1.0
+	move_zone.mouse_filter = Control.MOUSE_FILTER_PASS
+	move_zone.gui_input.connect(_on_move_zone_input)
+	hud.add_child(move_zone)
+	var look_zone := Control.new()
+	look_zone.name = "LookTouchZone"
+	look_zone.anchor_left = 0.48
+	look_zone.anchor_right = 1.0
+	look_zone.anchor_top = 0.0
+	look_zone.anchor_bottom = 1.0
+	look_zone.mouse_filter = Control.MOUSE_FILTER_PASS
+	look_zone.gui_input.connect(_on_look_zone_input)
+	hud.add_child(look_zone)
 	mission_label = Label.new()
 	mission_label.position = Vector2(22, 18)
 	mission_label.add_theme_font_size_override("font_size", 22)
 	mission_label.add_theme_color_override("font_color", Color(0.85, 0.91, 0.78))
+	mission_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(mission_label)
 	stats_label = Label.new()
 	stats_label.position = Vector2(22, 54)
 	stats_label.add_theme_font_size_override("font_size", 17)
 	stats_label.add_theme_color_override("font_color", Color(0.91, 0.88, 0.74))
+	stats_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(stats_label)
 	message_label = Label.new()
 	message_label.anchor_left = 0.18
@@ -465,6 +487,7 @@ func _build_hud() -> void:
 	message_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	message_label.add_theme_font_size_override("font_size", 19)
 	message_label.add_theme_color_override("font_color", Color(0.95, 0.91, 0.75))
+	message_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(message_label)
 	var button := Button.new()
 	button.text = "◈  INTERACTUAR"
@@ -487,7 +510,7 @@ func _build_hud() -> void:
 	button.add_theme_font_size_override("font_size", 22)
 	button.pressed.connect(_on_interact_pressed)
 	hud.add_child(button)
-	# Visible mobile movement zone so controls are discoverable on touch screens.
+	# Indicador visual; la entrada real la reciben las zonas táctiles.
 	var joystick_base := Panel.new()
 	joystick_base.name = "MoveJoystickGuide"
 	joystick_base.anchor_left = 0.0
@@ -498,26 +521,20 @@ func _build_hud() -> void:
 	joystick_base.offset_right = 136
 	joystick_base.offset_top = -150
 	joystick_base.offset_bottom = -38
-	# Godot GUI Button receives the touch directly; no manual viewport hit-testing.
 	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_base.add_theme_stylebox_override("panel", _hud_panel(Color(0.035, 0.075, 0.065, 0.45), Color(0.65, 0.74, 0.56, 0.62)))
 	hud.add_child(joystick_base)
 	var joystick_label := Label.new()
-	joystick_label.text = "MOVER"
+	joystick_label.text = "DESLIZÁ PARA MOVER"
 	joystick_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	joystick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	joystick_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	joystick_label.add_theme_font_size_override("font_size", 13)
+	joystick_label.add_theme_font_size_override("font_size", 11)
 	joystick_label.add_theme_color_override("font_color", Color(0.87, 0.91, 0.79, 0.75))
 	joystick_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_base.add_child(joystick_label)
-	# Backup directional controls: reliable press-and-hold buttons for mobile browsers.
-	_add_move_button(joystick_base, "▲", Vector2(40, 4), Vector2(32, 32), Vector2(0, -1))
-	_add_move_button(joystick_base, "◀", Vector2(4, 40), Vector2(32, 32), Vector2(-1, 0))
-	_add_move_button(joystick_base, "▶", Vector2(76, 40), Vector2(32, 32), Vector2(1, 0))
-	_add_move_button(joystick_base, "▼", Vector2(40, 76), Vector2(32, 32), Vector2(0, 1))
 	var hint := Label.new()
-	hint.text = "PC: WASD + ratón · Móvil: mantén ▲▼◀▶ para caminar; desliza a la derecha para mirar"
+	hint.text = "PC: WASD + ratón · Móvil: arrastrá a la izquierda para caminar y a la derecha para mirar"
 	hint.anchor_left = 0.0
 	hint.anchor_right = 1.0
 	hint.anchor_top = 1.0
@@ -528,38 +545,35 @@ func _build_hud() -> void:
 	hint.offset_bottom = -6
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.77, 0.82, 0.73))
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hud.add_child(hint)
 
-func _add_move_button(parent: Control, caption: String, offset: Vector2, button_size: Vector2, direction: Vector2) -> void:
-	var move_button := Button.new()
-	move_button.text = caption
-	move_button.position = offset
-	move_button.size = button_size
-	move_button.focus_mode = Control.FOCUS_NONE
-	move_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	move_button.add_theme_font_size_override("font_size", 18)
-	move_button.add_theme_color_override("font_color", Color(0.92, 0.96, 0.84))
-	move_button.add_theme_stylebox_override("normal", _hud_panel(Color(0.055, 0.10, 0.08, 0.82), Color(0.55, 0.69, 0.47, 0.9)))
-	move_button.add_theme_stylebox_override("hover", _hud_panel(Color(0.13, 0.21, 0.13, 0.95), Color(0.79, 0.77, 0.48, 1.0)))
-	move_button.add_theme_stylebox_override("pressed", _hud_panel(Color(0.19, 0.28, 0.15, 0.98), Color(0.9, 0.82, 0.46, 1.0)))
-	move_button.button_down.connect(_on_move_button_down.bind(direction))
-	move_button.button_up.connect(_on_move_button_up)
-	parent.add_child(move_button)
-	dpad_buttons.append({"button": move_button, "direction": direction})
+func _on_move_zone_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed and move_touch_index == -1:
+			move_touch_index = event.index
+			move_touch_origin = event.position
+			player.move_input = Vector2.ZERO
+		elif not event.pressed and event.index == move_touch_index:
+			move_touch_index = -1
+			player.move_input = Vector2.ZERO
+	elif event is InputEventScreenDrag and event.index == move_touch_index:
+		var drag: Vector2 = event.position - move_touch_origin
+		var distance := drag.length()
+		if distance < 8.0:
+			player.move_input = Vector2.ZERO
+		else:
+			player.move_input = drag.normalized() * clampf((distance - 8.0) / 42.0, 0.0, 1.0)
 
-func _on_move_button_down(direction: Vector2) -> void:
-	if is_instance_valid(player):
-		player.move_input = direction
+func _on_look_zone_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed and look_touch_index == -1:
+			look_touch_index = event.index
+		elif not event.pressed and event.index == look_touch_index:
+			look_touch_index = -1
+	elif event is InputEventScreenDrag and event.index == look_touch_index:
+		player.apply_look_delta(event.relative)
 
-func _on_move_button_up() -> void:
-	if is_instance_valid(player):
-		player.move_input = Vector2.ZERO
-
-func _joystick_vector(drag: Vector2) -> Vector2:
-	var distance := drag.length()
-	if distance < 8.0:
-		return Vector2.ZERO
-	return Vector2(drag.x, drag.y).normalized() * minf(distance / 42.0, 1.0)
 
 func _hud_panel(fill: Color, border_color: Color) -> StyleBoxFlat:
 	var panel := StyleBoxFlat.new()
