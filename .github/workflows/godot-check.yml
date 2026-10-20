@@ -15,6 +15,9 @@ on:
       - ".github/workflows/godot-check.yml"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -87,6 +90,39 @@ jobs:
 
       - name: Assert world, player, collision and interaction HUD
         run: godot --headless --path godot --script res://scripts/smoke_test.gd
+
+      - name: Publish isolated browser preview without touching the stable game files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: site
+
+      - name: Export Godot prototype for browser
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/site/godot-preview"
+          godot --headless --path godot --export-release "Web" "$GITHUB_WORKSPACE/site/godot-preview/index.html"
+          test -s "$GITHUB_WORKSPACE/site/godot-preview/index.html"
+          find "$GITHUB_WORKSPACE/site/godot-preview" -maxdepth 1 -type f -printf '%f %s bytes\\n'
+
+      - name: Publish browser preview in its own path
+        shell: bash
+        run: |
+          set -euxo pipefail
+          cat > "$GITHUB_WORKSPACE/site/godot-preview/README.txt" <<'EOF'
+          WILDLINE Godot browser preview. Experimental build, separate from the stable root website.
+          Open https://nicolamona.github.io/wildline/godot-preview/
+          EOF
+          git -C site config user.name "github-actions[bot]"
+          git -C site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C site add godot-preview
+          if ! git -C site diff --cached --quiet; then
+            git -C site commit -m "Publish isolated WILDLINE Godot browser preview"
+            git -C site push origin HEAD:main
+          else
+            echo "Browser preview is already up to date."
+          fi
 
       - name: Export Android debug APK
         run: |
