@@ -16,6 +16,7 @@ var joystick_gui_active := false
 var joystick_gui_origin := Vector2.ZERO
 var movement_holds: Dictionary = {}
 var mouse_move_active := false
+var dpad_buttons: Array[Dictionary] = []
 
 func _ready() -> void:
 	rng.seed = 140721
@@ -68,18 +69,13 @@ func _input(event: InputEvent) -> void:
 			movement_holds["mouse"] = direction
 			_apply_dpad_holds()
 
-func _dpad_direction(position: Vector2, viewport_size: Vector2) -> Vector2:
-	var x := position.x
-	var y := position.y - viewport_size.y
-	# Zonas de toque ampliadas alrededor de cada flecha, en coordenadas de viewport.
-	if x >= 56.0 and x <= 104.0 and y >= -154.0 and y <= -106.0:
-		return Vector2(0, -1)
-	if x >= 20.0 and x <= 68.0 and y >= -118.0 and y <= -70.0:
-		return Vector2(-1, 0)
-	if x >= 92.0 and x <= 140.0 and y >= -118.0 and y <= -70.0:
-		return Vector2(1, 0)
-	if x >= 56.0 and x <= 104.0 and y >= -82.0 and y <= -34.0:
-		return Vector2(0, 1)
+func _dpad_direction(position: Vector2, _viewport_size: Vector2) -> Vector2:
+	# Leer los rectángulos reales de los controles evita depender de la resolución,
+	# la relación de aspecto o el escalado que aplica el navegador móvil.
+	for entry in dpad_buttons:
+		var move_button := entry["button"] as Control
+		if is_instance_valid(move_button) and move_button.get_global_rect().grow(12.0).has_point(position):
+			return entry["direction"] as Vector2
 	return Vector2.ZERO
 
 func _apply_dpad_holds() -> void:
@@ -608,6 +604,7 @@ func _add_move_button(parent: Control, caption: String, offset: Vector2, button_
 	move_button.button_down.connect(_on_move_button_down.bind(direction))
 	move_button.button_up.connect(_on_move_button_up)
 	parent.add_child(move_button)
+	dpad_buttons.append({"button": move_button, "direction": direction})
 
 func _on_move_button_down(direction: Vector2) -> void:
 	if is_instance_valid(player):
