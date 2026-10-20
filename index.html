@@ -162,10 +162,12 @@ $('qualityBtn').onclick=()=>{qualityHigh=!qualityHigh;renderer.setPixelRatio(Mat
 $('mapBtn').onclick=()=>toast(`BRÚJULA  ·  ${Math.round((player.yaw*180/Math.PI+360)%360)}°`);
 const zone=$('moveZone'),knob=$('joyKnob');let joyId=null;
 function joyMove(e){const r=zone.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=37,len=Math.min(max,Math.hypot(dx,dy)),ang=Math.atan2(dy,dx);joy.x=Math.cos(ang)*len/max;joy.y=Math.sin(ang)*len/max;knob.style.transform=`translate(${joy.x*37}px,${joy.y*37}px)`}
-zone.addEventListener('pointerdown',e=>{e.preventDefault();joyId=e.pointerId;zone.setPointerCapture(joyId);joyMove(e)});
-zone.addEventListener('pointermove',e=>{if(e.pointerId===joyId)joyMove(e)});
+zone.addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();joyId=e.pointerId;try{zone.setPointerCapture(joyId)}catch(_){}joyMove(e)});
+window.addEventListener('pointermove',e=>{if(e.pointerId===joyId){e.preventDefault();joyMove(e)}},{passive:false});
 function joyEnd(e){if(e.pointerId===joyId){joyId=null;joy={x:0,y:0};knob.style.transform='translate(0,0)'}}
-zone.addEventListener('pointerup',joyEnd);zone.addEventListener('pointercancel',joyEnd);
+window.addEventListener('pointerup',joyEnd);
+window.addEventListener('pointercancel',joyEnd);
+zone.addEventListener('lostpointercapture',joyEnd);
 let lookId=null,lastX=0,lastY=0,tapStartX=0,tapStartY=0,tapMoved=false;
 const resourceRaycaster=new THREE.Raycaster(),resourceTapNdc=new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'&&e.button!==0)return;lookId=e.pointerId;lastX=tapStartX=e.clientX;lastY=tapStartY=e.clientY;tapMoved=false;renderer.domElement.setPointerCapture(e.pointerId)});
