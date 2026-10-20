@@ -295,7 +295,8 @@ function interact(){
   updateStats();saveProgress();toast((animal.type==='deer'?'Ciervo cazado':'Liebre cazada')+' · suministros recuperados: salud, energía y agua');return;
  }
  const r=nearestResource();if(r&&collectResource(r))return;
- const shelterDist=shelterBuilt?Math.hypot(player.x-shelterX,player.z-shelterZ):Infinity;if(shelterDist<4.5){player.health=Math.min(100,player.health+12);player.energy=Math.min(100,player.energy+25);player.water=Math.min(100,player.water+12);updateStats();saveProgress();toast('Pausa en el refugio · +salud · +energía · +agua');return}\n const springDist=Math.hypot(player.x-springX,player.z-springZ);
+ const shelterDist=shelterBuilt?Math.hypot(player.x-shelterX,player.z-shelterZ):Infinity;if(shelterDist<4.5){player.health=Math.min(100,player.health+12);player.energy=Math.min(100,player.energy+25);player.water=Math.min(100,player.water+12);updateStats();saveProgress();toast('Pausa en el refugio · +salud · +energía · +agua');return}
+ const springDist=Math.hypot(player.x-springX,player.z-springZ);
  if(springDist<5.5){
   if(player.water>=99){toast('Manantial de agua dulce: ya tienes la cantimplora llena.');return}
   player.water=100;updateStats();saveProgress();toast('Agua dulce recogida · AGUA 100%');return;
@@ -372,7 +373,8 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  else player.energy=Math.min(100,player.energy+dt*.35);
  player.water=Math.max(0,player.water-dt*.045);if(shelterBuilt&&Math.hypot(player.x-shelterX,player.z-shelterZ)<5){player.energy=Math.min(100,player.energy+dt*1.8);player.health=Math.min(100,player.health+dt*.12)}
  player.health=Math.max(0,player.health-(player.water===0?dt*.22:0));
- if(started&&dayTime>=fieldEventAt){fieldEventAt=dayTime+105+Math.random()*75;const eventRoll=Math.random();if(eventRoll<.34)toast('ANOMALÍA ELECTROMAGNÉTICA · la brújula registra una señal fuera de patrón.');else if(eventRoll<.67)toast('CAMBIO DE TIEMPO · el viento anuncia una tormenta distante. Busca refugio.');else toast('ECO DE RADIO · una transmisión fragmentada llega desde el interior de la isla.');}\n const n=nearestResource(),animal=nearestAnimal();const nearSpring=Math.hypot(player.x-springX,player.z-springZ)<5.5;$('hint').style.opacity=(animal||n||nearSpring)?'1':'0';$('hint').textContent=animal?('＋ CAZAR '+(animal.type==='deer'?'CIERVO':'LIEBRE')):n?('＋ RECOGER '+n.type.toUpperCase()):nearSpring?'＋ BEBER AGUA':'';
+ if(started&&dayTime>=fieldEventAt){fieldEventAt=dayTime+105+Math.random()*75;const eventRoll=Math.random();if(eventRoll<.34)toast('ANOMALÍA ELECTROMAGNÉTICA · la brújula registra una señal fuera de patrón.');else if(eventRoll<.67)toast('CAMBIO DE TIEMPO · el viento anuncia una tormenta distante. Busca refugio.');else toast('ECO DE RADIO · una transmisión fragmentada llega desde el interior de la isla.');}
+ const n=nearestResource(),animal=nearestAnimal();const nearSpring=Math.hypot(player.x-springX,player.z-springZ)<5.5;$('hint').style.opacity=(animal||n||nearSpring)?'1':'0';$('hint').textContent=animal?('＋ CAZAR '+(animal.type==='deer'?'CIERVO':'LIEBRE')):n?('＋ RECOGER '+n.type.toUpperCase()):nearSpring?'＋ BEBER AGUA':'';
  if(player.health<=0||(player.energy<=0&&player.water<=0)){player.health=75;player.energy=75;player.water=100;player.x=springX;player.z=springZ;player.y=terrainY(player.x,player.z)+1.72;camera.position.set(player.x,player.y,player.z);toast('Recuperación de emergencia: salud, energía y agua restauradas.');updateStats();saveProgress()}
  if(Math.floor(dayTime)%5===0&&Math.floor(dayTime)!==animate.lastTick){animate.lastTick=Math.floor(dayTime);updateStats()}
  }
