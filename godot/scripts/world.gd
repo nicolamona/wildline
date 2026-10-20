@@ -71,22 +71,15 @@ func _input(event: InputEvent) -> void:
 func _dpad_direction(position: Vector2, viewport_size: Vector2) -> Vector2:
 	var x := position.x
 	var y := position.y - viewport_size.y
-	# Amplía ligeramente las zonas de toque sin invadir el botón Interactuar.
-	if x >= 20.0 and x <= 66.0 and y >= -116.0 and y <= -38.0:
-		if y <= -104.0:
-			return Vector2(0, -1)
-		if y >= -78.0:
-			return Vector2(0, 1)
-	if x >= 20.0 and x <= 66.0 and y >= -150.0 and y <= -104.0:
+	# Zonas de toque ampliadas alrededor de cada flecha, en coordenadas de viewport.
+	if x >= 56.0 and x <= 104.0 and y >= -154.0 and y <= -106.0:
 		return Vector2(0, -1)
-	if x >= 66.0 and x <= 98.0 and y >= -116.0 and y <= -38.0:
-		return Vector2(0, 1)
-	if x >= 66.0 and x <= 140.0 and y >= -150.0 and y <= -38.0:
-		if x < 98.0:
-			return Vector2(0, 1) if y > -112.0 else Vector2(0, -1)
-		return Vector2(1, 0) if y >= -116.0 and y <= -38.0 else Vector2.ZERO
-	if x >= 20.0 and x <= 64.0 and y >= -116.0 and y <= -38.0:
+	if x >= 20.0 and x <= 68.0 and y >= -118.0 and y <= -70.0:
 		return Vector2(-1, 0)
+	if x >= 92.0 and x <= 140.0 and y >= -118.0 and y <= -70.0:
+		return Vector2(1, 0)
+	if x >= 56.0 and x <= 104.0 and y >= -82.0 and y <= -34.0:
+		return Vector2(0, 1)
 	return Vector2.ZERO
 
 func _apply_dpad_holds() -> void:
