@@ -38,7 +38,7 @@ func _input(event: InputEvent) -> void:
 				left_touch_index = -1
 				move_input = Vector2.ZERO
 	elif event is InputEventMouseMotion:
-		if left_touch_index == -2 and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		if left_touch_index == -2 and ((event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 			_update_move_from_drag(event.position - left_touch_origin)
 		elif not mobile_input and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 			_apply_look(event.relative)
