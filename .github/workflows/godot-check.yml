@@ -33,3 +33,6 @@ jobs:
 
       - name: Boot the prototype scene
         run: godot --headless --path godot --quit-after 120 --verbose
+
+      - name: Assert world, player, collision and interaction HUD
+        run: godot --headless --path godot --script res://scripts/smoke_test.gd
