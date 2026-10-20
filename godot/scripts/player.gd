@@ -11,7 +11,10 @@ var left_touch_origin := Vector2.ZERO
 @onready var camera: Camera3D = $Camera3D
 
 func _ready() -> void:
-	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Pointer lock is for desktop mouse look only; on mobile web it triggers
+	# the browser's cursor warning and is not needed for touch controls.
+	if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios"):
+		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	position.x = float(GameState.player.get("x", 0.0))
 	position.z = float(GameState.player.get("z", 0.0))
 	rotation.y = float(GameState.player.get("yaw", 0.0))
@@ -19,7 +22,8 @@ func _ready() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
-		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+		if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios"):
+			Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
 		_apply_look(event.relative)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
