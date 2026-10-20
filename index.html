@@ -141,6 +141,25 @@ const beaconX=58,beaconZ=-18,beaconY=terrainY(beaconX,beaconZ);
 boxMesh(.35,3.2,.35,metal,beaconX,beaconY+1.6,beaconZ);boxMesh(1.4,.18,.18,rust,beaconX,beaconY+2.8,beaconZ);boxMesh(.18,.75,.18,rust,beaconX,beaconY+3.15,beaconZ);
 const beaconLight=new THREE.PointLight(0x72d9ff,1.6,15,2);beaconLight.position.set(beaconX,beaconY+3.1,beaconZ);scene.add(beaconLight);
 const beaconGlow=new THREE.Mesh(new THREE.SphereGeometry(.28,12,8),new THREE.MeshBasicMaterial({color:0x72d9ff}));beaconGlow.position.copy(beaconLight.position);scene.add(beaconGlow);
+
+ // Alien signal: a physical, pulsing crystal relay at the second transmission site.
+const anomalyX=75,anomalyZ=-55,anomalyY=terrainY(anomalyX,anomalyZ);
+const anomalyGroup=new THREE.Group();
+const anomalyCore=new THREE.Mesh(new THREE.OctahedronGeometry(1.05,1),new THREE.MeshStandardMaterial({color:0x72e7f3,emissive:0x176a83,emissiveIntensity:1.6,metalness:.35,roughness:.22,transparent:true,opacity:.92}));
+anomalyCore.position.y=2.1;anomalyGroup.add(anomalyCore);
+for(let j=0;j<3;j++){const ring=new THREE.Mesh(new THREE.TorusGeometry(1.5+j*.35,.035,6,48),new THREE.MeshBasicMaterial({color:j===1?0xa3f5ff:0x54c9e5,transparent:true,opacity:.68}));ring.position.y=1.6+j*.55;ring.rotation.x=Math.PI/2+(j-1)*.25;anomalyGroup.add(ring)}
+const anomalyLight=new THREE.PointLight(0x45d9f2,2.2,18,2);anomalyLight.position.y=2.4;anomalyGroup.add(anomalyLight);
+anomalyGroup.position.set(anomalyX,anomalyY,anomalyZ);scene.add(anomalyGroup);
+ // Wreckage and a glowing recoverable data core at the final story objective.
+const wreckY=terrainY(-70,35);
+const wreckMetal=mat(0x53605e,.55,{metalness:.72});
+const wreckA=boxMesh(7,.45,2.1,wreckMetal,-70,wreckY+.55,35);wreckA.rotation.y=.38;wreckA.rotation.z=.13;
+const wreckB=boxMesh(3.4,.38,1.5,rust,-67,wreckY+1.1,36.4);wreckB.rotation.y=-.42;wreckB.rotation.z=.32;
+for(let j=0;j<4;j++){const shard=new THREE.Mesh(new THREE.BoxGeometry(.16,1.1+Math.random()*.9,.16),wreckMetal);shard.position.set(-72+j*1.25,wreckY+.6,-0+35+(j%2)*1.4);shard.rotation.z=(Math.random()-.5)*.8;scene.add(shard)}
+const dataCore=new THREE.Mesh(new THREE.IcosahedronGeometry(.72,1),new THREE.MeshStandardMaterial({color:0x91f5ff,emissive:0x197e9b,emissiveIntensity:2.1,metalness:.45,roughness:.2}));
+dataCore.position.set(-70,wreckY+1.65,34.1);scene.add(dataCore);
+const dataCoreLight=new THREE.PointLight(0x52dff4,1.8,12,2);dataCoreLight.position.copy(dataCore.position);scene.add(dataCoreLight);
+
 // Sparse grasses near the beach; instanced for performance.
 const grassGeo=new THREE.ConeGeometry(.07,.65,3);const grassMat=mat(0x71845a,.96);
 const grass=new THREE.InstancedMesh(grassGeo,grassMat,2200);const dummy=new THREE.Object3D();let gi=0;
@@ -150,7 +169,7 @@ const bushGeo=new THREE.IcosahedronGeometry(1,1);const bushMats=[mat(0x294a31,.9
 
 const player={x:0,z:7,yaw:0,pitch:0,health:100,water:82,energy:76,wood:0,stone:0,fiber:0,tool:0,hasAxe:false,hasTorch:false};camera.position.set(player.x,2.05,player.z);
 const torchLight=new THREE.PointLight(0xffbd70,0,24,1.7);torchLight.position.set(0,-.1,-.35);camera.add(torchLight);
-const keys={};let joy={x:0,y:0},buttonMove={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","MISIÓN 04 · PREPARAR EL EQUIPO","MISIÓN 05 · REPARAR LA SEÑAL","MISIÓN 06 · LA BALIZA AZUL","MISIÓN 07 · SUMINISTROS","MISIÓN 08 · NUEVA SEÑAL","MISIÓN 09 · EL NAUFRAGIO"];
+const keys={};let joy={x:0,y:0},buttonMove={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","MISIÓN 04 · PREPARAR EL EQUIPO","MISIÓN 05 · REPARAR LA SEÑAL","MISIÓN 06 · LA BALIZA AZUL","MISIÓN 07 · SUMINISTROS","MISIÓN 08 · NUEVA SEÑAL","MISIÓN 09 · EL NAUFRAGIO","EPÍLOGO · EL MENSAJE"];
 const SAVE_KEY='wildline-save-v1';
 let mapExpanded=false;let shelterBuilt=false,shelterX=0,shelterZ=0,shelterGroup=null;let fieldEventAt=95;
 $('mapBtn').addEventListener('click',()=>{mapExpanded=!mapExpanded;$('miniMap').classList.toggle('expanded',mapExpanded);$('mapBtn').textContent=mapExpanded?'⌖ MAPA −':'⌖ MAPA +';});
@@ -174,7 +193,7 @@ function drawMiniMap(){
  }else if(missionStage===1||missionStage===4){tx=-14;tz=-30;label=missionStage===1?'PUESTO':'RADIO'}
  else if(missionStage===2){tx=35;tz=-53;label='CUEVA'}
  else if(missionStage===3){tx=player.x;tz=player.z;label='FABRICAR'}
- else if(missionStage===5||missionStage===7){tx=beaconX;tz=beaconZ;label='BALIZA'}else if(missionStage===8){tx=75;tz=-55;label='SEÑAL'}else if(missionStage===9){tx=-70;tz=35;label='NAUFRAGIO'}else{tx=player.x;tz=player.z;label='COMPLETO'}
+ else if(missionStage===5||missionStage===7){tx=beaconX;tz=beaconZ;label='BALIZA'}else if(missionStage===8){tx=75;tz=-55;label='SEÑAL'}else if(missionStage===9){tx=-70;tz=35;label='NAUFRAGIO'}else{tx=player.x;tz=player.z;label='CAPÍTULO COMPLETO'}
  const dx=tx-player.x,dz=tz-player.z,distance=Math.hypot(dx,dz);
  // Transform world coordinates into the player's local view: forward is always up.
  const right=dx*Math.cos(player.yaw)-dz*Math.sin(player.yaw);
@@ -210,7 +229,7 @@ function loadProgress(){
   const data=JSON.parse(raw);if(!data||data.version!==1||!data.player)return false;
   const p=data.player;
   for(const k of ['x','z','yaw','pitch','health','water','energy','wood','stone','fiber','tool'])if(Number.isFinite(p[k]))player[k]=p[k];
-  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,9):0;if(data.shelter&&data.shelter.built&&Number.isFinite(data.shelter.x)&&Number.isFinite(data.shelter.z)){shelterBuilt=true;shelterX=data.shelter.x;shelterZ=data.shelter.z;createShelterVisual()}player.hasAxe=!!p.hasAxe;player.hasTorch=!!p.hasTorch;player.tool=Number.isInteger(p.tool)?THREE.MathUtils.clamp(p.tool,0,2):0;if(player.tool===1&&!player.hasAxe)player.tool=0;if(player.tool===2&&!player.hasTorch)player.tool=0;torchLight.intensity=player.tool===2&&player.hasTorch?2.8:0;
+  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,10):0;if(data.shelter&&data.shelter.built&&Number.isFinite(data.shelter.x)&&Number.isFinite(data.shelter.z)){shelterBuilt=true;shelterX=data.shelter.x;shelterZ=data.shelter.z;createShelterVisual()}player.hasAxe=!!p.hasAxe;player.hasTorch=!!p.hasTorch;player.tool=Number.isInteger(p.tool)?THREE.MathUtils.clamp(p.tool,0,2):0;if(player.tool===1&&!player.hasAxe)player.tool=0;if(player.tool===2&&!player.hasTorch)player.tool=0;torchLight.intensity=player.tool===2&&player.hasTorch?2.8:0;
   if(Array.isArray(data.taken))for(const i of data.taken){if(Number.isInteger(i)&&resourceObjects[i]&&!resourceObjects[i].taken){resourceObjects[i].taken=true;scene.remove(resourceObjects[i].group)}}
   if(player.health<=0||player.energy<=0||player.water<=0){player.x=springX;player.z=springZ;player.health=75;player.energy=75;player.water=100;}
   camera.position.set(player.x,terrainY(player.x,player.z)+1.72,player.z);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
@@ -244,7 +263,7 @@ function updateMission(){
  else if(missionStage===2){title.textContent=player.hasTorch?'Explora la cueva iluminando el camino':'Fabrica una antorcha y explora la cueva';detail.textContent=player.hasTorch?'Equipa la antorcha con el botón HERRAM. antes de entrar.':'Abre el inventario: cuesta 1 madera y 2 fibras. La cueva requiere luz.';fill.style.width='45%';count.textContent=player.hasTorch?'ANTORCHA LISTA · CUEVA':'FABRICA UNA ANTORCHA'}
  else if(missionStage===3){title.textContent='Prepara herramientas de rescate';detail.textContent='Fabrica un hacha de piedra para despejar recursos y preparar la reparación.';fill.style.width='62%';count.textContent=player.hasAxe?'HACHA FABRICADA':'FABRICA UN HACHA'}
  else if(missionStage===4){title.textContent='Repara la radio de emergencia';detail.textContent='Vuelve al puesto con 3 maderas, 2 piedras y 2 fibras para reparar la antena.';fill.style.width='82%';count.textContent='MADERA '+player.wood+'/3 · PIEDRA '+player.stone+'/2 · FIBRA '+player.fiber+'/2'}
- else if(missionStage===5){title.textContent='Investiga la baliza azul';detail.textContent='La radio activó una baliza desconocida al este. Sigue el marcador del mapa e interactúa junto a ella.';fill.style.width='100%';count.textContent='NUEVO OBJETIVO · BALIZA'}else if(missionStage===6){title.textContent='Reúne 3 fibras vegetales';detail.textContent='La baliza necesita suministros para continuar. Busca y recoge 3 fibras vegetales.';fill.style.width=Math.min(100,player.fiber/3*100)+'%';count.textContent=Math.min(player.fiber,3)+' / 3 FIBRAS'}else if(missionStage===7){title.textContent='Regresa a la baliza azul';detail.textContent='Con los suministros reunidos, vuelve a la baliza e interactúa para seguir la señal.';fill.style.width='75%';count.textContent='DESTINO · BALIZA'}else if(missionStage===8){title.textContent='Sigue la señal hacia el norte';detail.textContent='La baliza ha revelado una segunda fuente de transmisión. Sigue el marcador hasta el nuevo punto de señal e interactúa.';fill.style.width='90%';count.textContent='NUEVO DESTINO · SEÑAL'}else{title.textContent='Investiga el naufragio';detail.textContent='La señal apunta a un naufragio en la costa sur. Sigue el marcador para descubrir qué ocurrió.';fill.style.width='95%';count.textContent='NUEVO DESTINO · NAUFRAGIO'}
+ else if(missionStage===5){title.textContent='Investiga la baliza azul';detail.textContent='La radio activó una baliza desconocida al este. Sigue el marcador del mapa e interactúa junto a ella.';fill.style.width='100%';count.textContent='NUEVO OBJETIVO · BALIZA'}else if(missionStage===6){title.textContent='Reúne 3 fibras vegetales';detail.textContent='La baliza necesita suministros para continuar. Busca y recoge 3 fibras vegetales.';fill.style.width=Math.min(100,player.fiber/3*100)+'%';count.textContent=Math.min(player.fiber,3)+' / 3 FIBRAS'}else if(missionStage===7){title.textContent='Regresa a la baliza azul';detail.textContent='Con los suministros reunidos, vuelve a la baliza e interactúa para seguir la señal.';fill.style.width='75%';count.textContent='DESTINO · BALIZA'}else if(missionStage===8){title.textContent='Sigue la señal hacia el norte';detail.textContent='La baliza ha revelado una segunda fuente de transmisión. Sigue el marcador hasta el nuevo punto de señal e interactúa.';fill.style.width='90%';count.textContent='NUEVO DESTINO · SEÑAL'}else if(missionStage===9){title.textContent='Investiga el naufragio';detail.textContent='Busca el núcleo de datos entre los restos y descubre quién envió la señal.';fill.style.width='95%';count.textContent='OBJETIVO · NÚCLEO DE DATOS'}else{title.textContent='El mensaje continúa';detail.textContent='Has recuperado el núcleo. La señal no venía de la isla… y ahora sabe que estás aquí.';fill.style.width='100%';count.textContent='CAPÍTULO 1 COMPLETADO · NUEVA SEÑAL DETECTADA'}
  saveProgress();
 }
 function collectResource(r){
@@ -317,7 +336,7 @@ function interact(){
  const signalDist=Math.hypot(player.x-75,player.z+55);
  if(signalDist<7&&missionStage===8){missionStage=9;updateMission();toast('Señal localizada. Nueva misión: investiga el naufragio.');return;}
  const wreckDist=Math.hypot(player.x+70,player.z-35);
- if(wreckDist<8&&missionStage===9){toast('Llegaste al área del naufragio. La investigación continúa.');return;}
+ if(wreckDist<9&&missionStage===9){missionStage=10;player.wood+=3;player.stone+=2;player.fiber+=2;player.health=Math.min(100,player.health+20);player.energy=Math.min(100,player.energy+25);player.water=Math.min(100,player.water+20);updateStats();updateMission();saveProgress();toast('NÚCLEO RECUPERADO · Capítulo 1 completado. Una nueva señal acaba de responder.');return;}if(wreckDist<9&&missionStage===10){toast('El núcleo sigue transmitiendo. Hay otra cosa al otro lado de la señal…');return;}
  const caveDist=Math.hypot(player.x-35,player.z+53);
  if(caveDist<8){
   if(missionStage===2){
@@ -358,8 +377,8 @@ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updat
 const clock=new THREE.Clock();
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);dayTime+=dt;
  // Slow sunlight drift gives the scene a subtle living quality.
- sun.position.x=-55+Math.sin(dayTime*.025)*18;sun.position.z=25+Math.cos(dayTime*.025)*12;
- water.position.y=-.48+Math.sin(dayTime*.65)*.035;if(waterShader)waterShader.uniforms.uWildlineTime.value=dayTime;
+ const dayPhase=(dayTime%240)/240,dayLight=.18+.82*(.5+.5*Math.sin(dayPhase*Math.PI*2-Math.PI/2));sun.position.x=-55+Math.sin(dayTime*.025)*18;sun.position.z=25+Math.cos(dayTime*.025)*12;sun.intensity=0.22+2.88*dayLight;hemi.intensity=.42+1.23*dayLight;fill.intensity=.18+.47*dayLight;scene.fog.color.setRGB(.025+.58*dayLight,.055+.67*dayLight,.07+.66*dayLight);scene.background.copy(scene.fog.color);
+ water.position.y=-.48+Math.sin(dayTime*.65)*.035;if(waterShader)waterShader.uniforms.uWildlineTime.value=dayTime;anomalyGroup.rotation.y=dayTime*.22;anomalyCore.rotation.x=Math.sin(dayTime*1.4)*.18;anomalyCore.position.y=2.1+Math.sin(dayTime*1.7)*.16;anomalyLight.intensity=1.5+Math.sin(dayTime*2.2)*.55;dataCore.rotation.y=dayTime*.65;dataCore.position.y=wreckY+1.65+Math.sin(dayTime*1.8)*.12;dataCoreLight.intensity=1.3+Math.sin(dayTime*2.1)*.45;
  if(started){drawMiniMap();if(Math.floor(dayTime)%4===0&&Math.floor(dayTime)!==animate.lastSaveTick){animate.lastSaveTick=Math.floor(dayTime);saveProgress()}let f=-joy.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),side=joy.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0);const len=Math.hypot(f,side);if(len>1){f/=len;side/=len}
  const moving=len>.1;const sprinting=(running||keys.shift)&&moving&&player.energy>0;const speed=(sprinting?7.5:4.1)*dt;const dx=(-Math.sin(player.yaw)*f+Math.cos(player.yaw)*side)*speed,dz=(-Math.cos(player.yaw)*f-Math.sin(player.yaw)*side)*speed;
  let nx=player.x+dx,nz=player.z+dz;
@@ -367,7 +386,7 @@ function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDel
  let blocked=false;for(const o of objects){if(Math.hypot(nx-o.x,nz-o.z)<o.r+0.48){blocked=true;break}}
  if(!blocked){player.x=THREE.MathUtils.clamp(nx,-145,145);player.z=THREE.MathUtils.clamp(nz,-145,145)}
  player.y=terrainY(player.x,player.z)+1.72;camera.position.set(player.x,player.y,player.z);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
- for(const a of wildlife){if(a.alive){if(dayTime>=a.nextMove){a.turn+=(Math.random()-.5)*1.8;a.nextMove=dayTime+1.8+Math.random()*3.2}const step=.35*dt;a.x+=Math.sin(a.turn)*step;a.z+=Math.cos(a.turn)*step;a.x=THREE.MathUtils.clamp(a.x,a.homeX-5,a.homeX+5);a.z=THREE.MathUtils.clamp(a.z,a.homeZ-5,a.homeZ+5);a.group.position.set(a.x,terrainY(a.x,a.z),a.z);a.group.rotation.y=a.turn;a.phase+=dt*7;a.legs.forEach((leg,i)=>{leg.rotation.x=Math.sin(a.phase+(i%2)*Math.PI)*.22})}else if(dayTime>=a.respawnAt){a.alive=true;a.x=a.homeX;a.z=a.homeZ;a.group.position.set(a.x,terrainY(a.x,a.z),a.z);scene.add(a.group)}}
+ for(const a of wildlife){if(a.alive){const animalDist=Math.hypot(a.x-player.x,a.z-player.z);if(animalDist<7){a.turn=Math.atan2(a.x-player.x,a.z-player.z);a.nextMove=dayTime+.45}if(dayTime>=a.nextMove){a.turn+=(Math.random()-.5)*1.8;a.nextMove=dayTime+1.8+Math.random()*3.2}const step=(animalDist<7?1.5:.35)*dt;a.x+=Math.sin(a.turn)*step;a.z+=Math.cos(a.turn)*step;a.x=THREE.MathUtils.clamp(a.x,a.homeX-5,a.homeX+5);a.z=THREE.MathUtils.clamp(a.z,a.homeZ-5,a.homeZ+5);a.group.position.set(a.x,terrainY(a.x,a.z),a.z);a.group.rotation.y=a.turn;a.phase+=dt*7;a.legs.forEach((leg,i)=>{leg.rotation.x=Math.sin(a.phase+(i%2)*Math.PI)*.22})}else if(dayTime>=a.respawnAt){a.alive=true;a.x=a.homeX;a.z=a.homeZ;a.group.position.set(a.x,terrainY(a.x,a.z),a.z);scene.add(a.group)}}
  if(sprinting)player.energy=Math.max(0,player.energy-dt*3.0);
  else if(!moving)player.energy=Math.min(100,player.energy+dt*2.2);
  else player.energy=Math.min(100,player.energy+dt*.35);
