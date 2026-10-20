@@ -272,6 +272,18 @@ func _block(parent: Node3D, pos: Vector3, size: Vector3, color: Color) -> void:
 	instance.material_override = _mat(color)
 	parent.add_child(instance)
 
+func _add_prop_cylinder(parent: Node3D, pos: Vector3, radius: float, height: float, color: Color) -> void:
+	var prop := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = radius
+	mesh.bottom_radius = radius
+	mesh.height = height
+	mesh.radial_segments = 7
+	prop.mesh = mesh
+	prop.position = pos
+	prop.material_override = _mat(color)
+	parent.add_child(prop)
+
 func _build_landmarks() -> void:
 	var outpost_pos := Vector3(14.0, _terrain_height(14.0, -30.0), -30.0)
 	var outpost := Node3D.new()
@@ -279,6 +291,36 @@ func _build_landmarks() -> void:
 	add_child(outpost)
 	_block(outpost, Vector3(0, 1.35, 0), Vector3(5.2, 2.7, 4.0), Color(0.25, 0.20, 0.13))
 	_block(outpost, Vector3(0, 2.9, 0), Vector3(5.8, 0.35, 4.6), Color(0.16, 0.14, 0.11))
+	# Weather-beaten expedition details: doorway, window, signal mast and supply crates.
+	_block(outpost, Vector3(0.0, 0.92, -2.035), Vector3(1.05, 1.85, 0.10), Color(0.055, 0.065, 0.052))
+	_block(outpost, Vector3(-1.55, 1.72, -2.045), Vector3(0.78, 0.62, 0.10), Color(0.065, 0.12, 0.12))
+	_block(outpost, Vector3(-1.55, 1.72, -2.11), Vector3(0.08, 0.72, 0.08), Color(0.36, 0.32, 0.22))
+	_block(outpost, Vector3(-1.55, 1.72, -2.11), Vector3(0.86, 0.07, 0.08), Color(0.36, 0.32, 0.22))
+	_block(outpost, Vector3(1.8, 0.42, -2.6), Vector3(1.0, 0.82, 0.9), Color(0.31, 0.23, 0.13))
+	_block(outpost, Vector3(1.8, 0.42, -2.6), Vector3(1.04, 0.08, 0.94), Color(0.16, 0.12, 0.075))
+	_block(outpost, Vector3(1.8, 0.42, -2.6), Vector3(0.08, 0.88, 0.08), Color(0.17, 0.13, 0.08))
+	_block(outpost, Vector3(-2.35, 0.23, -1.3), Vector3(1.6, 0.12, 0.35), Color(0.29, 0.20, 0.11))
+	_block(outpost, Vector3(-2.35, 0.36, -1.3), Vector3(1.45, 0.12, 0.32), Color(0.36, 0.25, 0.13))
+	_add_prop_cylinder(outpost, Vector3(2.05, 3.75, 0.25), 0.055, 2.0, Color(0.18, 0.19, 0.16))
+	_add_prop_cylinder(outpost, Vector3(2.05, 4.65, 0.25), 0.025, 0.72, Color(0.30, 0.34, 0.29))
+	var lantern := MeshInstance3D.new()
+	var lantern_mesh := SphereMesh.new()
+	lantern_mesh.radius = 0.14
+	lantern_mesh.height = 0.28
+	lantern.mesh = lantern_mesh
+	lantern.position = Vector3(-2.0, 2.15, -2.15)
+	var lantern_mat := _mat(Color(0.88, 0.56, 0.20), 0.35)
+	lantern_mat.emission_enabled = true
+	lantern_mat.emission = Color(0.95, 0.34, 0.07)
+	lantern_mat.emission_energy_multiplier = 1.8
+	lantern.material_override = lantern_mat
+	outpost.add_child(lantern)
+	var lantern_light := OmniLight3D.new()
+	lantern_light.position = lantern.position
+	lantern_light.light_color = Color(1.0, 0.49, 0.20)
+	lantern_light.light_energy = 0.42
+	lantern_light.omni_range = 5.5
+	outpost.add_child(lantern_light)
 	var outpost_body := StaticBody3D.new()
 	outpost_body.position = outpost_pos + Vector3(0, 1.0, 0)
 	outpost_body.set_script(PICKUP_SCRIPT)
@@ -292,6 +334,22 @@ func _build_landmarks() -> void:
 	var cave_pos := Vector3(29.0, _terrain_height(29.0, -39.0), -39.0)
 	_block(self, cave_pos + Vector3(0, 2.0, 0), Vector3(7.0, 4.0, 1.8), Color(0.20, 0.22, 0.20))
 	_block(self, cave_pos + Vector3(0, 0.2, 0.95), Vector3(2.8, 2.7, 0.25), Color(0.025, 0.035, 0.03))
+	# Jagged entrance stones and a faint bioluminescent trace inside the cave mouth.
+	for rock_offset in [Vector3(-2.15, 0.15, 0.8), Vector3(2.0, 0.25, 0.78), Vector3(-2.7, 0.85, 0.72), Vector3(2.65, 0.75, 0.7)]:
+		_add_rock(cave_pos + rock_offset, rng.randf_range(0.65, 1.15))
+	var fungus_mat := _mat(Color(0.12, 0.48, 0.42), 0.5)
+	fungus_mat.emission_enabled = true
+	fungus_mat.emission = Color(0.025, 0.38, 0.31)
+	fungus_mat.emission_energy_multiplier = 1.2
+	for fungus_pos in [Vector3(-0.9, 0.25, 0.75), Vector3(0.95, 0.32, 0.74), Vector3(0.0, 0.52, 0.7)]:
+		var fungus := MeshInstance3D.new()
+		var fungus_mesh := SphereMesh.new()
+		fungus_mesh.radius = 0.12
+		fungus_mesh.height = 0.20
+		fungus.mesh = fungus_mesh
+		fungus.position = cave_pos + fungus_pos
+		fungus.material_override = fungus_mat
+		add_child(fungus)
 	var cave_body := StaticBody3D.new()
 	cave_body.position = cave_pos + Vector3(0, 1.2, 0)
 	cave_body.set_script(PICKUP_SCRIPT)
