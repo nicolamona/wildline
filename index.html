@@ -138,7 +138,8 @@ function drawMiniMap(){
  let tx=0,tz=0,label='RECURSOS';
  const needsTorch=missionStage===2&&!player.hasTorch&&(player.wood<1||player.fiber<2);
  const needsAxe=missionStage===3&&!player.hasAxe&&(player.wood<2||player.stone<2||player.fiber<1);
- if(missionStage===0||needsTorch||needsAxe){
+ const needsRepair=missionStage===4&&(player.wood<3||player.stone<2||player.fiber<2);
+ if(missionStage===0||needsTorch||needsAxe||needsRepair){
   let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}
   if(best){tx=best.x;tz=best.z;label='RECURSOS'}else{tx=player.x;tz=player.z;label='INVENTARIO'}
  }else if(missionStage===1||missionStage===4){tx=-14;tz=-30;label=missionStage===1?'PUESTO':'RADIO'}
@@ -253,7 +254,7 @@ function interact(){
  if(caveDist<8){
   if(missionStage===2){
    if(!player.hasTorch||player.tool!==2){toast('Está demasiado oscuro. Fabrica y equipa la antorcha en INVENTARIO.');return}
-   missionStage=3;updateMission();toast('Registro de la cueva recuperado. Nueva misión: prepara el equipo.');
+   missionStage=player.hasAxe?4:3;updateMission();toast(player.hasAxe?'Registro recuperado. Vuelve al puesto y repara la radio.':'Registro de la cueva recuperado. Nueva misión: prepara el equipo.');
   }else if(missionStage<2){toast('La entrada está oscura. Primero investiga el puesto y fabrica una antorcha.')}
   else{toast('Cueva explorada. Ya recuperaste el registro de la señal.')}
   return;
