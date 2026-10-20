@@ -11,6 +11,7 @@ var stats_label: Label
 var message_label: Label
 var message_timer := 0.0
 var rng := RandomNumberGenerator.new()
+var material_cache: Dictionary = {}
 
 func _ready() -> void:
 	rng.seed = 140721
@@ -110,9 +111,13 @@ func _build_terrain() -> void:
 	add_child(body)
 
 func _mat(color: Color, roughness: float = 0.9) -> StandardMaterial3D:
+	var key := "%s|%.2f" % [color.to_html(true), roughness]
+	if material_cache.has(key):
+		return material_cache[key] as StandardMaterial3D
 	var material := StandardMaterial3D.new()
 	material.albedo_color = color
 	material.roughness = roughness
+	material_cache[key] = material
 	return material
 
 func _add_tree(pos: Vector3, scale_factor: float) -> void:
