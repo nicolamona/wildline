@@ -484,8 +484,31 @@ func _build_hud() -> void:
 	button.add_theme_font_size_override("font_size", 22)
 	button.pressed.connect(_on_interact_pressed)
 	hud.add_child(button)
+	# Visible mobile movement zone so controls are discoverable on touch screens.
+	var joystick_base := Panel.new()
+	joystick_base.name = "MoveJoystickGuide"
+	joystick_base.anchor_left = 0.0
+	joystick_base.anchor_right = 0.0
+	joystick_base.anchor_top = 1.0
+	joystick_base.anchor_bottom = 1.0
+	joystick_base.offset_left = 24
+	joystick_base.offset_right = 136
+	joystick_base.offset_top = -150
+	joystick_base.offset_bottom = -38
+	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick_base.add_theme_stylebox_override("panel", _hud_panel(Color(0.035, 0.075, 0.065, 0.45), Color(0.65, 0.74, 0.56, 0.62)))
+	hud.add_child(joystick_base)
+	var joystick_label := Label.new()
+	joystick_label.text = "MOVER"
+	joystick_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	joystick_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	joystick_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	joystick_label.add_theme_font_size_override("font_size", 15)
+	joystick_label.add_theme_color_override("font_color", Color(0.87, 0.91, 0.79, 0.9))
+	joystick_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick_base.add_child(joystick_label)
 	var hint := Label.new()
-	hint.text = "PC: WASD + ratón · Móvil: arrastra izquierda para moverte y derecha para mirar"
+	hint.text = "PC: WASD + ratón · Móvil: arrastra desde MOVER (abajo izquierda); desliza a la derecha para mirar"
 	hint.anchor_left = 0.0
 	hint.anchor_right = 1.0
 	hint.anchor_top = 1.0
