@@ -60,6 +60,7 @@ jobs:
           cp /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.4.1.stable/"
           test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_debug.apk"
           test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_release.apk"
+          test -s "$HOME/.local/share/godot/export_templates/4.4.1.stable/android_source.zip"
           godot --version
 
       - name: Configure Godot Android export settings
@@ -109,7 +110,12 @@ jobs:
           export GODOT_ANDROID_KEYSTORE_DEBUG_USER="androiddebugkey"
           export GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD="android"
           mkdir -p build
-          godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose 2>&1 | tee build/android-export.log
+          if ! godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose 2>&1 | tee build/android-export.log; then
+            echo "Direct APK export failed; retrying with Godot Gradle build."
+            rm -f build/WILDLINE-debug.apk
+            sed -i 's#gradle_build/use_gradle_build=false#gradle_build/use_gradle_build=true#' godot/export_presets.cfg
+            godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk --verbose 2>&1 | tee build/android-gradle-export.log
+          fi
           test -s build/WILDLINE-debug.apk
 
       - name: Upload Android APK for device testing
