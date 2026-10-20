@@ -538,8 +538,8 @@ func _build_hud() -> void:
 		move_button.add_theme_stylebox_override("normal", _hud_panel(Color(0.035, 0.075, 0.065, 0.78), Color(0.65, 0.74, 0.56, 0.78)))
 		move_button.add_theme_stylebox_override("pressed", _hud_panel(Color(0.18, 0.27, 0.16, 0.96), Color(0.88, 0.83, 0.53, 1.0)))
 		var move_vector: Vector2 = direction[3]
-		move_button.button_down.connect(func(): player.move_input = move_vector)
-		move_button.button_up.connect(func(): player.move_input = Vector2.ZERO)
+		move_button.button_down.connect(_set_mobile_move_direction.bind(move_vector))
+		move_button.button_up.connect(_release_mobile_move_direction.bind(move_vector))
 		dpad.add_child(move_button)
 	var hint := Label.new()
 	hint.text = "PC: WASD + ratón · Móvil: cruceta o arrastrá a la izquierda; arrastrá a la derecha para mirar"
@@ -617,6 +617,14 @@ func _on_look_zone_input(event: InputEvent) -> void:
 	elif event is InputEventScreenDrag and event.index == look_touch_index:
 		player.apply_look_delta(event.relative)
 
+
+func _set_mobile_move_direction(direction: Vector2) -> void:
+	if is_instance_valid(player):
+		player.move_input = direction
+
+func _release_mobile_move_direction(direction: Vector2) -> void:
+	if is_instance_valid(player) and player.move_input == direction:
+		player.move_input = Vector2.ZERO
 
 func _hud_panel(fill: Color, border_color: Color) -> StyleBoxFlat:
 	var panel := StyleBoxFlat.new()
