@@ -134,12 +134,16 @@ function drawMiniMap(){
  c.save();c.translate(cx,cy);c.rotate(-player.yaw);
  c.beginPath();for(let i=0;i<=100;i++){const a=i/100*Math.PI*2,r=76+9*Math.sin(a*3+0.5)+6*Math.cos(a*5);const x=Math.cos(a)*r*1.08,y=Math.sin(a)*r*.82;if(i===0)c.moveTo(x,y);else c.lineTo(x,y)}c.closePath();c.fillStyle='rgba(112,139,91,.42)';c.fill();c.strokeStyle='rgba(202,218,164,.7)';c.lineWidth=2;c.stroke();
  c.strokeStyle='rgba(226,222,178,.28)';c.lineWidth=1;c.beginPath();c.ellipse(0,0,55,43,0,0,Math.PI*2);c.stroke();c.restore();
- // The marker follows the active mission, not a fixed decorative point.
+ // The marker follows the active mission and missing crafting ingredients.
  let tx=0,tz=0,label='RECURSOS';
- if(missionStage===0||missionStage===3){let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}if(best){tx=best.x;tz=best.z}else{tx=player.x;tz=player.z;label=missionStage===3?'FABRICAR':'PUESTO'}}
- else if(missionStage===1||missionStage===4){tx=-14;tz=-30;label=missionStage===1?'PUESTO':'RADIO'}
+ const needsTorch=missionStage===2&&!player.hasTorch&&(player.wood<1||player.fiber<2);
+ const needsAxe=missionStage===3&&!player.hasAxe&&(player.wood<2||player.stone<2||player.fiber<1);
+ if(missionStage===0||needsTorch||needsAxe){
+  let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}
+  if(best){tx=best.x;tz=best.z;label='RECURSOS'}else{tx=player.x;tz=player.z;label='INVENTARIO'}
+ }else if(missionStage===1||missionStage===4){tx=-14;tz=-30;label=missionStage===1?'PUESTO':'RADIO'}
  else if(missionStage===2){tx=35;tz=-53;label='CUEVA'}
- else if(missionStage===3){let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}if(best){tx=best.x;tz=best.z}else{tx=player.x;tz=player.z;label='FABRICAR'}}
+ else if(missionStage===3){tx=player.x;tz=player.z;label='FABRICAR'}
  else{tx=player.x;tz=player.z;label='COMPLETO'}
  const dx=tx-player.x,dz=tz-player.z,distance=Math.hypot(dx,dz);
  // Transform world coordinates into the player's local view: forward is always up.
