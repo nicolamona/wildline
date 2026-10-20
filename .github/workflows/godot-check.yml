@@ -87,7 +87,7 @@ jobs:
         run: godot --headless --editor --path godot --quit
 
       - name: Install Android build template into project
-        run: godot --headless --editor --path godot --install-android-build-template
+        run: godot --headless --editor --path godot --install-android-build-template --quit
 
       - name: Boot the prototype scene
         run: godot --headless --path godot --quit-after 120 --verbose
