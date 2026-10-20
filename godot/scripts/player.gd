@@ -5,9 +5,6 @@ extends CharacterBody3D
 @export var look_sensitivity: float = 0.003
 @export var gravity: float = 18.0
 var move_input := Vector2.ZERO
-var left_touch_index: int = -1
-var right_touch_index: int = -1
-var left_touch_origin := Vector2.ZERO
 @onready var camera: Camera3D = $Camera3D
 
 func _ready() -> void:
@@ -21,32 +18,19 @@ func _ready() -> void:
 	camera.rotation.x = float(GameState.player.get("pitch", 0.0))
 
 func _unhandled_input(event: InputEvent) -> void:
-	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
-	# El movimiento táctil pertenece exclusivamente a los cuatro botones GUI
-	# creados en world.gd. Aquí solo se procesa la cámara y el ratón de escritorio.
+	# Los gestos táctiles se gestionan en zonas GUI explícitas de world.gd.
+	# Aquí quedan únicamente teclado y ratón de escritorio.
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios"):
 				Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	elif event is InputEventMouseMotion:
 		if not OS.has_feature("mobile") and not OS.has_feature("web_android") and not OS.has_feature("web_ios") and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-			_apply_look(event.relative)
+			apply_look_delta(event.relative)
 	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	elif event is InputEventScreenTouch:
-		# No competir con los botones GUI ni con el botón de interacción.
-		var over_interact_button: bool = event.position.x >= viewport_size.x - 190.0 and event.position.y >= viewport_size.y - 125.0
-		if event.pressed:
-			if event.position.x >= viewport_size.x * 0.5 and not over_interact_button and right_touch_index == -1:
-				right_touch_index = event.index
-		else:
-			if event.index == right_touch_index:
-				right_touch_index = -1
-	elif event is InputEventScreenDrag:
-		if event.index == right_touch_index:
-			_apply_look(event.relative)
 
-func _apply_look(relative: Vector2) -> void:
+func apply_look_delta(relative: Vector2) -> void:
 	rotation.y -= relative.x * look_sensitivity
 	camera.rotation.x = clampf(camera.rotation.x - relative.y * look_sensitivity, -1.35, 1.35)
 
