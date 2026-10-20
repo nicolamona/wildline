@@ -68,7 +68,7 @@ jobs:
           set -euxo pipefail
           mkdir -p "$HOME/.android" "$HOME/.config/godot"
           keytool -storetype JKS -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/.android/debug.keystore" -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999
-          cat > "$HOME/.config/godot/editor_settings-4.4.tres" <<EOF
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
           [gd_resource type="EditorSettings" format=3]
 
           [resource]
