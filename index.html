@@ -22,7 +22,7 @@
 <div class="utility"><button id="mapBtn">⌖ MAPA</button><button id="inventoryBtn">▤ INVENTARIO <span id="inventoryTotal">0</span></button><button id="qualityBtn">◈ ALTO</button></div>
 <div id="miniMap" aria-label="Mapa interactivo de navegación"><div id="miniMapHead"><span>MAPA EN VIVO</span><span id="mapTargetLabel">OBJETIVO</span></div><canvas id="mapCanvas" width="232" height="232" aria-label="Toca para ampliar el mapa"></canvas><div id="mapGuidance">Buscando objetivo… · Toca el mapa para ampliar</div></div>
 <div id="bottom"><div class="move-zone" id="moveZone" aria-label="Controles de movimiento"><div class="joy-base"></div><div class="joy-knob" id="joyKnob"></div><button class="move-arrow up" data-move-x="0" data-move-y="1" aria-label="Avanzar">▲</button><button class="move-arrow left" data-move-x="-1" data-move-y="0" aria-label="Desplazarse a la izquierda">◀</button><button class="move-arrow right" data-move-x="1" data-move-y="0" aria-label="Desplazarse a la derecha">▶</button><button class="move-arrow down" data-move-x="0" data-move-y="-1" aria-label="Retroceder">▼</button></div><div class="actions"><div class="action-col"><button class="round" id="runBtn" aria-label="Correr">»</button><span class="tiny">CORRER</span></div><div class="action-col"><button class="round primary" id="interactBtn" aria-label="Interactuar">＋</button><span class="tiny">USAR</span></div><div class="action-col"><button class="round" id="toolBtn" aria-label="Herramienta">⌁</button><span class="tiny">HERRAM.</span></div></div></div>
-<div id="toast"></div><div id="inventoryPanel" aria-hidden="true"><div class="inventory-card" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle"><div class="inventory-head"><h2 id="inventoryTitle">INVENTARIO</h2><button id="closeInventory" class="inventory-close">CERRAR ✕</button></div><div class="inventory-sub">EQUIPO DE SUPERVIVENCIA · RECURSOS RECOGIDOS</div><div class="inventory-grid"><div class="inventory-slot"><div class="inventory-icon">🪵</div><div class="inventory-name">Madera</div><div class="inventory-qty" id="invWood">0</div></div><div class="inventory-slot"><div class="inventory-icon">🪨</div><div class="inventory-name">Piedra</div><div class="inventory-qty" id="invStone">0</div></div><div class="inventory-slot"><div class="inventory-icon">🌿</div><div class="inventory-name">Fibra vegetal</div><div class="inventory-qty" id="invFiber">0</div></div><div class="inventory-slot"><div class="inventory-icon">⌁</div><div class="inventory-name">Herramienta equipada</div><div class="inventory-qty" id="invTool" style="font-size:14px">Manos libres</div></div></div><div class="inventory-foot" id="inventorySummary">Los objetos recogidos se guardan con tu partida local.</div></div></div>
+<div id="toast"></div><div id="inventoryPanel" aria-hidden="true"><div class="inventory-card" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle"><div class="inventory-head"><h2 id="inventoryTitle">INVENTARIO</h2><button id="closeInventory" class="inventory-close">CERRAR ✕</button></div><div class="inventory-sub">EQUIPO DE SUPERVIVENCIA · RECURSOS RECOGIDOS</div><div class="inventory-grid"><div class="inventory-slot"><div class="inventory-icon">🪵</div><div class="inventory-name">Madera</div><div class="inventory-qty" id="invWood">0</div></div><div class="inventory-slot"><div class="inventory-icon">🪨</div><div class="inventory-name">Piedra</div><div class="inventory-qty" id="invStone">0</div></div><div class="inventory-slot"><div class="inventory-icon">🌿</div><div class="inventory-name">Fibra vegetal</div><div class="inventory-qty" id="invFiber">0</div></div><div class="inventory-slot"><div class="inventory-icon">⌁</div><div class="inventory-name">Equipo equipado</div><div class="inventory-qty" id="invTool" style="font-size:14px">Manos libres</div></div></div><div class="inventory-sub" style="margin-top:18px;margin-bottom:8px">FABRICACIÓN · CONSUME RECURSOS</div><div class="inventory-grid"><button id="craftTorch" class="inventory-slot" style="text-align:left;color:inherit"><div class="inventory-icon">🔥</div><div class="inventory-name">Antorcha</div><div class="inventory-qty" style="font-size:13px">1 madera + 2 fibras</div><div class="inventory-name" id="torchStatus">No fabricada</div></button><button id="craftAxe" class="inventory-slot" style="text-align:left;color:inherit"><div class="inventory-icon">🪓</div><div class="inventory-name">Hacha de piedra</div><div class="inventory-qty" style="font-size:13px">2 maderas + 2 piedras + 1 fibra</div><div class="inventory-name" id="axeStatus">No fabricada</div></button></div><div class="inventory-foot" id="inventorySummary">Los recursos tienen usos: fabrica herramientas, ilumina la cueva y repara la radio de emergencia.</div></div></div>
 <div id="intro"><div class="intro-card"><div class="eyebrow">SURVIVAL EXPERIMENT · 001</div><h1>WILD<br>LINE<span style="color:#d8c28a">.</span></h1><p>Despiertas en una isla que no aparece en ningún mapa. Sigue la costa, reúne recursos y descubre qué quedó atrás.</p><div class="feature"><span>01</span> Exploración libre en primera persona</div><div class="feature"><span>02</span> Recolección, energía y supervivencia</div><div class="feature"><span>03</span> Entorno 3D optimizado para móvil</div><button id="start">ENTRAR EN LA ISLA →</button><div id="help">Móvil: usa las flechas o el joystick para moverte · arrastra para mirar · ＋ para recoger. En ordenador: WASD + ratón.</div></div></div>
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.164.1/build/three.module.js';
@@ -119,8 +119,9 @@ for(let i=0;i<2200;i++){const a=Math.random()*Math.PI*2,r=25+Math.random()*72,x=
 // Instanced understory adds density without thousands of individual draw calls.
 const bushGeo=new THREE.IcosahedronGeometry(1,1);const bushMats=[mat(0x294a31,.96),mat(0x385b37,.96),mat(0x4a6940,.96)];const bushLists=[[],[],[]];for(let i=0;i<1050;i++){const a=Math.random()*Math.PI*2,r=24+Math.random()*75,x=Math.cos(a)*r*1.1,z=Math.sin(a)*r*.82;if(Math.hypot(x,z)<29)continue;const k=Math.floor(Math.random()*3);dummy.position.set(x,terrainY(x,z)+.45,z);dummy.rotation.set(Math.random()*.2,Math.random()*Math.PI,Math.random()*.2);const sc=.45+Math.random()*.9;dummy.scale.set(sc,.45+sc*.55,sc);dummy.updateMatrix();bushLists[k].push(dummy.matrix.clone())}for(let k=0;k<3;k++){const inst=new THREE.InstancedMesh(bushGeo,bushMats[k],bushLists[k].length);bushLists[k].forEach((m,i)=>inst.setMatrixAt(i,m));inst.instanceMatrix.needsUpdate=true;scene.add(inst)}
 
-const player={x:0,z:7,yaw:0,pitch:0,health:100,water:82,energy:76,wood:0,stone:0,fiber:0,tool:0};camera.position.set(player.x,2.05,player.z);
-const keys={};let joy={x:0,y:0},buttonMove={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","REGISTRO · CAPÍTULO 01"];
+const player={x:0,z:7,yaw:0,pitch:0,health:100,water:82,energy:76,wood:0,stone:0,fiber:0,tool:0,hasAxe:false,hasTorch:false};camera.position.set(player.x,2.05,player.z);
+const torchLight=new THREE.PointLight(0xffbd70,0,24,1.7);torchLight.position.set(0,-.1,-.35);camera.add(torchLight);
+const keys={};let joy={x:0,y:0},buttonMove={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","MISIÓN 04 · PREPARAR EL EQUIPO","MISIÓN 05 · REPARAR LA SEÑAL","EPÍLOGO · RESCATISTA"];
 const SAVE_KEY='wildline-save-v1';
 let mapExpanded=false;
 $('mapBtn').addEventListener('click',()=>{mapExpanded=!mapExpanded;$('miniMap').classList.toggle('expanded',mapExpanded);$('mapBtn').textContent=mapExpanded?'⌖ MAPA −':'⌖ MAPA +';});
@@ -133,11 +134,12 @@ function drawMiniMap(){
  c.save();c.translate(cx,cy);c.rotate(-player.yaw);
  c.beginPath();for(let i=0;i<=100;i++){const a=i/100*Math.PI*2,r=76+9*Math.sin(a*3+0.5)+6*Math.cos(a*5);const x=Math.cos(a)*r*1.08,y=Math.sin(a)*r*.82;if(i===0)c.moveTo(x,y);else c.lineTo(x,y)}c.closePath();c.fillStyle='rgba(112,139,91,.42)';c.fill();c.strokeStyle='rgba(202,218,164,.7)';c.lineWidth=2;c.stroke();
  c.strokeStyle='rgba(226,222,178,.28)';c.lineWidth=1;c.beginPath();c.ellipse(0,0,55,43,0,0,Math.PI*2);c.stroke();c.restore();
- // Pick the next objective dynamically as the player moves or completes tasks.
+ // The marker follows the active mission, not a fixed decorative point.
  let tx=0,tz=0,label='RECURSOS';
- if(missionStage===0){let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}if(best){tx=best.x;tz=best.z}else{tx=-14;tz=-30;label='PUESTO'}}
- else if(missionStage===1){tx=-14;tz=-30;label='PUESTO'}
+ if(missionStage===0||missionStage===3){let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}if(best){tx=best.x;tz=best.z}else{tx=player.x;tz=player.z;label=missionStage===3?'FABRICAR':'PUESTO'}}
+ else if(missionStage===1||missionStage===4){tx=-14;tz=-30;label=missionStage===1?'PUESTO':'RADIO'}
  else if(missionStage===2){tx=35;tz=-53;label='CUEVA'}
+ else if(missionStage===3){let best=null,bd=Infinity;for(const r of resourceObjects){if(r.taken)continue;const d=Math.hypot(r.x-player.x,r.z-player.z);if(d<bd){best=r;bd=d}}if(best){tx=best.x;tz=best.z}else{tx=player.x;tz=player.z;label='FABRICAR'}}
  else{tx=player.x;tz=player.z;label='COMPLETO'}
  const dx=tx-player.x,dz=tz-player.z,distance=Math.hypot(dx,dz);
  // Transform world coordinates into the player's local view: forward is always up.
@@ -164,7 +166,7 @@ function drawMiniMap(){
 let hasLocalSave=false;
 function saveProgress(){
  try{
-  const data={version:1,player:{x:player.x,z:player.z,yaw:player.yaw,pitch:player.pitch,health:player.health,water:player.water,energy:player.energy,wood:player.wood,stone:player.stone,fiber:player.fiber,tool:player.tool},missionStage,taken:resourceObjects.filter(o=>o.taken).map(o=>resourceObjects.indexOf(o)),savedAt:Date.now()};
+  const data={version:1,player:{x:player.x,z:player.z,yaw:player.yaw,pitch:player.pitch,health:player.health,water:player.water,energy:player.energy,wood:player.wood,stone:player.stone,fiber:player.fiber,tool:player.tool,hasAxe:player.hasAxe,hasTorch:player.hasTorch},missionStage,taken:resourceObjects.filter(o=>o.taken).map(o=>resourceObjects.indexOf(o)),savedAt:Date.now()};
   localStorage.setItem(SAVE_KEY,JSON.stringify(data));hasLocalSave=true;
  }catch(e){console.warn('WILDLINE: no se pudo guardar localmente',e)}
 }
@@ -174,29 +176,88 @@ function loadProgress(){
   const data=JSON.parse(raw);if(!data||data.version!==1||!data.player)return false;
   const p=data.player;
   for(const k of ['x','z','yaw','pitch','health','water','energy','wood','stone','fiber','tool'])if(Number.isFinite(p[k]))player[k]=p[k];
-  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,3):0;
+  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,5):0;player.hasAxe=!!p.hasAxe;player.hasTorch=!!p.hasTorch;player.tool=Number.isInteger(p.tool)?THREE.MathUtils.clamp(p.tool,0,2):0;if(player.tool===1&&!player.hasAxe)player.tool=0;if(player.tool===2&&!player.hasTorch)player.tool=0;torchLight.intensity=player.tool===2&&player.hasTorch?2.8:0;
   if(Array.isArray(data.taken))for(const i of data.taken){if(Number.isInteger(i)&&resourceObjects[i]&&!resourceObjects[i].taken){resourceObjects[i].taken=true;scene.remove(resourceObjects[i].group)}}
   camera.position.set(player.x,terrainY(player.x,player.z)+1.72,player.z);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
   hasLocalSave=true;updateStats();updateMission();$('start').textContent='CONTINUAR PARTIDA →';
   return true;
  }catch(e){console.warn('WILDLINE: guardado local inválido',e);return false}
 }
-function updateInventory(){if(!$('invWood'))return;$('invWood').textContent=player.wood;$('invStone').textContent=player.stone;$('invFiber').textContent=player.fiber;$('invTool').textContent=['Manos libres','Herramienta improvisada','Antorcha'][player.tool]||'Manos libres';const total=player.wood+player.stone+player.fiber;$('inventoryTotal').textContent=total;$('inventorySummary').textContent=total+' recursos recogidos · el avance se conserva en este navegador.'}
+function updateInventory(){
+ if(!$('invWood'))return;
+ $('invWood').textContent=player.wood;$('invStone').textContent=player.stone;$('invFiber').textContent=player.fiber;
+ $('invTool').textContent=player.tool===1&&player.hasAxe?'Hacha de piedra':player.tool===2&&player.hasTorch?'Antorcha':'Manos libres';
+ $('inventoryTotal').textContent=player.wood+player.stone+player.fiber;
+ $('torchStatus').textContent=player.hasTorch?'FABRICADA · EQUIPABLE':'Requiere 1 madera + 2 fibras';
+ $('axeStatus').textContent=player.hasAxe?'FABRICADA · MEJORA RECOLECCIÓN':'Requiere 2 maderas + 2 piedras + 1 fibra';
+ $('inventorySummary').textContent=player.wood+' madera · '+player.stone+' piedra · '+player.fiber+' fibra. Las herramientas fabricadas se guardan en tu partida.';
+}
 function toggleInventory(force){const panel=$('inventoryPanel');const open=typeof force==='boolean'?force:!panel.classList.contains('open');panel.classList.toggle('open',open);panel.setAttribute('aria-hidden',String(!open));if(open)updateInventory()}
 $('inventoryBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggleInventory()});
 $('closeInventory').addEventListener('click',()=>toggleInventory(false));
 $('inventoryPanel').addEventListener('click',e=>{if(e.target===$('inventoryPanel'))toggleInventory(false)});
-function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),1900)}
+function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').classList.remove('show'),2200)}
 function updateStats(){for(const [key,id] of [['health','hp'],['water','water'],['energy','food']]){$(id+'Text').textContent=Math.round(player[key]);$(id+'Bar').style.width=player[key]+'%'}updateInventory()}
-function nearestResource(){let best=null,bd=5.2;for(const o of resourceObjects){if(o.taken)continue;const d=Math.hypot(o.x-player.x,o.z-player.z);if(d<bd){best=o;bd=d}}return best}
-function updateMission(){const total=player.wood+player.stone+player.fiber;$('missionLabel').textContent=missionNames[missionStage];const title=$('missionTitle'),detail=$('missionDetail'),fill=$('missionFill'),count=$('missionCount');if(missionStage===0){title.textContent='Reúne 4 recursos';detail.textContent='Busca madera, piedra o fibra entre la playa y la vegetación.';fill.style.width=Math.min(100,total/4*100)+'%';count.textContent=Math.min(total,4)+' / 4 RECURSOS'}else if(missionStage===1){title.textContent='Investiga el puesto abandonado';detail.textContent='Sigue el terreno hacia el interior y busca el antiguo puesto costero.';fill.style.width='45%';count.textContent='SIGUIENTE DESTINO · PUESTO'}else if(missionStage===2){title.textContent='Sigue la señal hasta la cueva';detail.textContent='Explora la ladera rocosa al norte. La entrada está marcada por un arco de piedra.';fill.style.width='78%';count.textContent='SIGUIENTE DESTINO · CUEVA'}else{title.textContent='Primer registro recuperado';detail.textContent='Has encontrado rastros de una expedición anterior. La isla aún guarda secretos.';fill.style.width='100%';count.textContent='CAPÍTULO 01 COMPLETADO'}saveProgress()}
-function collectResource(r){if(!r||r.taken)return false;r.taken=true;scene.remove(r.group);player[r.type]++;toast(({wood:'Madera recogida',stone:'Piedra recogida',fiber:'Fibra vegetal recogida'})[r.type]+' · '+player[r.type]);if(missionStage===0&&player.wood+player.stone+player.fiber>=4){missionStage=1;toast('Objetivo actualizado: investiga el puesto abandonado')}updateMission();return true}
-function interact(){const r=nearestResource();if(r&&collectResource(r))return;
-const dist=Math.hypot(player.x+14,player.z+30);if(dist<7){if(missionStage===1){missionStage=2;updateMission();toast('Registro encontrado. Una señal apunta hacia la cueva.')}else if(missionStage===0){toast('Puesto abandonado · reúne 4 recursos antes de investigar')}else{toast('Puesto costero · ya has registrado esta zona')}return}
-const caveDist=Math.hypot(player.x-35,player.z+53);if(caveDist<8){if(missionStage===2){missionStage=3;updateMission();toast('Capítulo 01 completado · señal recuperada')}else if(missionStage<2){toast('La entrada de la cueva está oscura. Sigue primero las pistas de la costa.')}else{toast('Cueva explorada · no hay más pistas por ahora')}return}
-toast('No hay nada que recoger aquí. Sigue el objetivo activo.')}
+function nearestResource(){let best=null,bd=player.tool===1&&player.hasAxe?8:5.2;for(const o of resourceObjects){if(o.taken)continue;const d=Math.hypot(o.x-player.x,o.z-player.z);if(d<bd){best=o;bd=d}}return best}
+function updateMission(){
+ const total=player.wood+player.stone+player.fiber;$('missionLabel').textContent=missionNames[missionStage];
+ const title=$('missionTitle'),detail=$('missionDetail'),fill=$('missionFill'),count=$('missionCount');
+ if(missionStage===0){title.textContent='Reúne 4 recursos';detail.textContent='Recoge madera, piedra y fibra. Se usarán para fabricar equipo.';fill.style.width=Math.min(100,total/4*100)+'%';count.textContent=Math.min(total,4)+' / 4 RECURSOS'}
+ else if(missionStage===1){title.textContent='Investiga el puesto abandonado';detail.textContent='Sigue la señal del mapa y registra el puesto costero.';fill.style.width='25%';count.textContent='SIGUIENTE DESTINO · PUESTO'}
+ else if(missionStage===2){title.textContent=player.hasTorch?'Explora la cueva iluminando el camino':'Fabrica una antorcha y explora la cueva';detail.textContent=player.hasTorch?'Equipa la antorcha con el botón HERRAM. antes de entrar.':'Abre el inventario: cuesta 1 madera y 2 fibras. La cueva requiere luz.';fill.style.width='45%';count.textContent=player.hasTorch?'ANTORCHA LISTA · CUEVA':'FABRICA UNA ANTORCHA'}
+ else if(missionStage===3){title.textContent='Prepara herramientas de rescate';detail.textContent='Fabrica un hacha de piedra para despejar recursos y preparar la reparación.';fill.style.width='62%';count.textContent=player.hasAxe?'HACHA FABRICADA':'FABRICA UN HACHA'}
+ else if(missionStage===4){title.textContent='Repara la radio de emergencia';detail.textContent='Vuelve al puesto con 3 maderas, 2 piedras y 2 fibras para reparar la antena.';fill.style.width='82%';count.textContent='MADERA '+player.wood+'/3 · PIEDRA '+player.stone+'/2 · FIBRA '+player.fiber+'/2'}
+ else{title.textContent='Señal de rescate activada';detail.textContent='La radio transmite tu posición. La isla queda abierta para seguir explorando.';fill.style.width='100%';count.textContent='CAPÍTULO 01 COMPLETADO'}
+ saveProgress();
+}
+function collectResource(r){
+ if(!r||r.taken)return false;r.taken=true;scene.remove(r.group);
+ const bonus=player.tool===1&&player.hasAxe&&r.type==='wood'?2:1;player[r.type]+=bonus;
+ toast(({wood:'Madera recogida',stone:'Piedra recogida',fiber:'Fibra vegetal recogida'})[r.type]+' +'+bonus+' · total '+player[r.type]);
+ if(missionStage===0&&player.wood+player.stone+player.fiber>=4){missionStage=1;toast('Objetivo actualizado: investiga el puesto abandonado')}
+ updateMission();return true;
+}
+function craftItem(kind){
+ if(kind==='torch'){
+  if(player.hasTorch){toast('Ya tienes una antorcha. Equípala con HERRAM.');return}
+  if(player.wood<1||player.fiber<2){toast('Faltan materiales: 1 madera y 2 fibras');return}
+  player.wood--;player.fiber-=2;player.hasTorch=true;toast('Antorcha fabricada. Equípala para iluminar la cueva.');
+ }else{
+  if(player.hasAxe){toast('El hacha ya está fabricada y no se rompe.');return}
+  if(player.wood<2||player.stone<2||player.fiber<1){toast('Faltan materiales: 2 maderas, 2 piedras y 1 fibra');return}
+  player.wood-=2;player.stone-=2;player.fiber--;player.hasAxe=true;toast('Hacha de piedra fabricada: ahora recoges madera a distancia y obtienes extra.');
+  if(missionStage===3){missionStage=4;toast('Nueva misión: repara la radio del puesto costero.')}
+ }
+ updateStats();updateMission();
+}
+$('craftTorch').addEventListener('click',()=>craftItem('torch'));
+$('craftAxe').addEventListener('click',()=>craftItem('axe'));
+function interact(){
+ const r=nearestResource();if(r&&collectResource(r))return;
+ const dist=Math.hypot(player.x+14,player.z+30);
+ if(dist<7){
+  if(missionStage===1){missionStage=2;updateMission();toast('Registro recuperado: la señal conduce a una cueva.')}
+  else if(missionStage===4){
+   if(player.wood<3||player.stone<2||player.fiber<2){toast('Radio sin reparar: necesitas 3 maderas, 2 piedras y 2 fibras.');return}
+   player.wood-=3;player.stone-=2;player.fiber-=2;missionStage=5;updateStats();updateMission();toast('Radio reparada. Señal de rescate transmitida.');
+  }else if(missionStage===0){toast('Puesto abandonado: reúne 4 recursos primero.')}
+  else if(missionStage===2){toast('La pista ya está registrada. La cueva te espera.')}
+  else{toast('Puesto costero: no hay más acciones aquí ahora.')}
+  return;
+ }
+ const caveDist=Math.hypot(player.x-35,player.z+53);
+ if(caveDist<8){
+  if(missionStage===2){
+   if(!player.hasTorch||player.tool!==2){toast('Está demasiado oscuro. Fabrica y equipa la antorcha en INVENTARIO.');return}
+   missionStage=3;updateMission();toast('Registro de la cueva recuperado. Nueva misión: prepara el equipo.');
+  }else if(missionStage<2){toast('La entrada está oscura. Primero investiga el puesto y fabrica una antorcha.')}
+  else{toast('Cueva explorada. Ya recuperaste el registro de la señal.')}
+  return;
+ }
+ toast('No hay nada que usar aquí. Sigue el marcador del mapa.');
+}
 $('interactBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();interact()});
-$('toolBtn').addEventListener('pointerdown',e=>{e.preventDefault();player.tool=(player.tool+1)%3;toast(['Manos libres','Herramienta improvisada','Antorcha'][player.tool]);updateInventory()});
+$('toolBtn').addEventListener('pointerdown',e=>{e.preventDefault();if(player.tool===0){if(player.hasAxe)player.tool=1;else if(player.hasTorch)player.tool=2;}else if(player.tool===1){player.tool=player.hasTorch?2:0;}else player.tool=0;torchLight.intensity=player.tool===2&&player.hasTorch?2.8:0;toast(player.tool===1&&player.hasAxe?'Hacha equipada · recolección mejorada':player.tool===2&&player.hasTorch?'Antorcha encendida · ilumina la cueva':'Manos libres');updateInventory();saveProgress()});
 $('runBtn').addEventListener('pointerdown',e=>{e.preventDefault();running=true});['pointerup','pointercancel','pointerleave'].forEach(ev=>$('runBtn').addEventListener(ev,()=>running=false));
 $('qualityBtn').onclick=()=>{qualityHigh=!qualityHigh;renderer.setPixelRatio(Math.min(devicePixelRatio,qualityHigh?(deviceTier?2:1.5):1));sun.castShadow=qualityHigh;$('qualityBtn').textContent=qualityHigh?'◈ ALTO':'◈ AHORRO';toast(qualityHigh?'Calidad visual alta':'Modo ahorro activado')};
 $('mapBtn').onclick=()=>toast(`BRÚJULA  ·  ${Math.round((player.yaw*180/Math.PI+360)%360)}°`);
