@@ -257,7 +257,7 @@ function interact(){
   return;
  }
  const beaconDist=Math.hypot(player.x-beaconX,player.z-beaconZ);
- if(beaconDist<7){if(missionStage===5){missionStage=6;updateMission();toast('Baliza registrada. Nueva misión: reúne 3 fibras vegetales.')}else if(missionStage===6){toast(player.fiber>=3?'Ya tienes las fibras. Regresa a la baliza azul.':'Necesitas reunir 3 fibras vegetales primero.')}else if(missionStage===7){missionStage=8;updateMission();toast('Baliza sincronizada. Nueva misión: sigue la señal hacia el norte.')}else{toast('Baliza azul: señal secundaria detectada.')}return;}
+ if(beaconDist<7){if(missionStage===5){missionStage=player.fiber>=3?7:6;updateMission();toast(player.fiber>=3?'Baliza registrada. Vuelve con los suministros listos.':'Baliza registrada. Nueva misión: reúne 3 fibras vegetales.')}else if(missionStage===6){toast(player.fiber>=3?'Ya tienes las fibras. Regresa a la baliza azul.':'Necesitas reunir 3 fibras vegetales primero.')}else if(missionStage===7){missionStage=8;updateMission();toast('Baliza sincronizada. Nueva misión: sigue la señal hacia el norte.')}else{toast('Baliza azul: señal secundaria detectada.')}return;}
  const signalDist=Math.hypot(player.x-75,player.z+55);
  if(signalDist<7&&missionStage===8){missionStage=9;updateMission();toast('Señal localizada. Nueva misión: investiga el naufragio.');return;}
  const wreckDist=Math.hypot(player.x+70,player.z-35);
