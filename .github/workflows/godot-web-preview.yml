@@ -69,7 +69,23 @@ jobs:
           git -C site add godot-preview
           if ! git -C site diff --cached --quiet; then
             git -C site commit -m "Publish isolated WILDLINE Godot browser preview"
-            git -C site push origin HEAD:main
+            # Other workflows may update main while the Web export is running.
+            # Rebase this preview-only commit on the newest main and retry push.
+            for attempt in 1 2 3 4 5; do
+              git -C site fetch origin main
+              if ! git -C site rebase origin/main; then
+                git -C site rebase --abort || true
+                echo "Could not rebase preview commit cleanly onto main." >&2
+                exit 1
+              fi
+              if git -C site push origin HEAD:main; then
+                exit 0
+              fi
+              echo "Push attempt $attempt failed; retrying against latest main."
+              sleep 2
+            done
+            echo "Could not publish preview after 5 attempts." >&2
+            exit 1
           else
             echo "Browser preview is already up to date."
           fi
