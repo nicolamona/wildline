@@ -45,19 +45,25 @@ func _build_environment() -> void:
 	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color(0.48, 0.55, 0.49)
-	env.ambient_light_energy = 0.62
+	env.ambient_light_energy = 0.78
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
-	env.fog_light_color = Color(0.57, 0.65, 0.60)
-	env.fog_density = 0.0045
+	env.fog_light_color = Color(0.63, 0.69, 0.61)
+	env.fog_density = 0.0032
+	env.adjustment_enabled = true
+	env.adjustment_brightness = 1.04
+	env.adjustment_contrast = 1.12
+	env.adjustment_saturation = 0.88
 	world_env.environment = env
 	add_child(world_env)
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-43.0, -28.0, 0.0)
 	sun.light_color = Color(1.0, 0.88, 0.69)
-	sun.light_energy = 1.35
+	sun.light_energy = 1.55
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 75.0
+	sun.directional_shadow_max_distance = 92.0
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun.shadow_blur = 1.4
 	add_child(sun)
 	var water := MeshInstance3D.new()
 	var water_mesh := PlaneMesh.new()
@@ -65,10 +71,12 @@ func _build_environment() -> void:
 	water.mesh = water_mesh
 	water.position.y = -1.8
 	var water_mat := StandardMaterial3D.new()
-	water_mat.albedo_color = Color(0.025, 0.20, 0.22, 0.88)
-	water_mat.metallic = 0.22
-	water_mat.roughness = 0.24
-	water_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	water_mat.albedo_color = Color(0.025, 0.17, 0.19, 1.0)
+	water_mat.metallic = 0.16
+	water_mat.roughness = 0.19
+	water_mat.emission_enabled = true
+	water_mat.emission = Color(0.005, 0.035, 0.04)
+	water_mat.emission_energy_multiplier = 0.25
 	water.material_override = water_mat
 	add_child(water)
 
@@ -82,6 +90,7 @@ func _terrain_height(x: float, z: float) -> float:
 func _build_terrain() -> void:
 	var surface := SurfaceTool.new()
 	surface.begin(Mesh.PRIMITIVE_TRIANGLES)
+	surface.set_smooth_group(1)
 	var half := float(GRID_SIZE) * STEP * 0.5
 	for z in range(GRID_SIZE):
 		for x in range(GRID_SIZE):
@@ -93,14 +102,25 @@ func _build_terrain() -> void:
 			var b := Vector3(x1, _terrain_height(x1, z0), z0)
 			var c := Vector3(x0, _terrain_height(x0, z1), z1)
 			var d := Vector3(x1, _terrain_height(x1, z1), z1)
-			surface.add_vertex(a); surface.add_vertex(c); surface.add_vertex(b)
-			surface.add_vertex(b); surface.add_vertex(c); surface.add_vertex(d)
+			surface.set_color(_ground_tint(a))
+			surface.add_vertex(a)
+			surface.set_color(_ground_tint(c))
+			surface.add_vertex(c)
+			surface.set_color(_ground_tint(b))
+			surface.add_vertex(b)
+			surface.set_color(_ground_tint(b))
+			surface.add_vertex(b)
+			surface.set_color(_ground_tint(c))
+			surface.add_vertex(c)
+			surface.set_color(_ground_tint(d))
+			surface.add_vertex(d)
 	surface.generate_normals()
 	var terrain_mesh := surface.commit()
 	var terrain := MeshInstance3D.new()
 	terrain.mesh = terrain_mesh
 	var ground_mat := StandardMaterial3D.new()
-	ground_mat.albedo_color = Color(0.20, 0.27, 0.17)
+	ground_mat.albedo_color = Color(0.78, 0.82, 0.70)
+	ground_mat.vertex_color_use_as_albedo = true
 	ground_mat.roughness = 1.0
 	terrain.material_override = ground_mat
 	add_child(terrain)
@@ -124,30 +144,96 @@ func _add_tree(pos: Vector3, scale_factor: float) -> void:
 	var tree := Node3D.new()
 	tree.position = pos
 	tree.scale = Vector3.ONE * scale_factor
+	tree.rotation.y = rng.randf_range(0.0, TAU)
 	add_child(tree)
+	var broadleaf := rng.randf() < 0.34
 	var trunk := MeshInstance3D.new()
 	var trunk_mesh := CylinderMesh.new()
-	trunk_mesh.top_radius = 0.18
-	trunk_mesh.bottom_radius = 0.36
-	trunk_mesh.height = 4.5
+	trunk_mesh.top_radius = 0.13 if broadleaf else 0.18
+	trunk_mesh.bottom_radius = 0.30 if broadleaf else 0.36
+	trunk_mesh.height = rng.randf_range(3.7, 5.0)
+	trunk_mesh.radial_segments = 7
 	trunk.mesh = trunk_mesh
-	trunk.position.y = 2.25
-	trunk.material_override = _mat(Color(0.19, 0.105, 0.055))
+	trunk.position.y = trunk_mesh.height * 0.5
+	trunk.rotation.z = rng.randf_range(-0.07, 0.07)
+	trunk.material_override = _mat([Color(0.19, 0.105, 0.055), Color(0.25, 0.16, 0.085), Color(0.15, 0.12, 0.075)][rng.randi_range(0, 2)])
 	tree.add_child(trunk)
-	var greens := [Color(0.09, 0.20, 0.13), Color(0.12, 0.25, 0.15), Color(0.16, 0.29, 0.17), Color(0.10, 0.23, 0.16)]
-	for level in range(4):
+	var greens := [Color(0.07, 0.17, 0.105), Color(0.10, 0.22, 0.13), Color(0.14, 0.27, 0.15), Color(0.18, 0.30, 0.17), Color(0.10, 0.23, 0.16)]
+	var crown_count := 3 if broadleaf else 4
+	for level in range(crown_count):
 		var crown := MeshInstance3D.new()
-		# A zero-radius top on CylinderMesh creates a pointed, low-poly crown.
-		var cone := CylinderMesh.new()
-		cone.top_radius = 0.0
-		cone.bottom_radius = 2.25 - float(level) * 0.25
-		cone.height = 3.0 - float(level) * 0.25
-		cone.radial_segments = 7
-		crown.mesh = cone
-		crown.position.y = 3.2 + float(level) * 1.15
-		crown.material_override = _mat(greens[level])
+		var crown_mesh: Mesh
+		if broadleaf:
+			var blob := SphereMesh.new()
+			blob.radius = rng.randf_range(1.15, 1.8)
+			blob.height = blob.radius * 1.45
+			blob.radial_segments = 7
+			blob.rings = 4
+			crown_mesh = blob
+			crown.position = Vector3(rng.randf_range(-0.65, 0.65), 3.3 + float(level) * 0.72, rng.randf_range(-0.55, 0.55))
+		else:
+			var cone := CylinderMesh.new()
+			cone.top_radius = 0.0
+			cone.bottom_radius = 2.25 - float(level) * 0.28
+			cone.height = 3.0 - float(level) * 0.18
+			cone.radial_segments = 7
+			crown_mesh = cone
+			crown.position.y = 3.2 + float(level) * 1.12
+		crown.mesh = crown_mesh
+		crown.material_override = _mat(greens[rng.randi_range(0, greens.size() - 1)])
 		tree.add_child(crown)
+	if rng.randf() < 0.42:
+		for root_index in range(3):
+			var root := MeshInstance3D.new()
+			var root_mesh := CylinderMesh.new()
+			root_mesh.top_radius = 0.035
+			root_mesh.bottom_radius = 0.16
+			root_mesh.height = rng.randf_range(0.9, 1.45)
+			root.mesh = root_mesh
+			root.position = Vector3(0.0, 0.12, 0.0)
+			root.rotation = Vector3(0.15, float(root_index) * TAU / 3.0, 1.0)
+			root.material_override = trunk.material_override
+			tree.add_child(root)
 
+func _ground_tint(point: Vector3) -> Color:
+	var radius := Vector2(point.x, point.z).length()
+	var noise := sin(point.x * 0.31 + cos(point.z * 0.21)) * 0.5 + cos(point.z * 0.27 - point.x * 0.13) * 0.5
+	var base := Color(0.23, 0.30, 0.18).lerp(Color(0.35, 0.31, 0.20), clampf((noise + 0.5) * 0.55, 0.0, 0.8))
+	if radius > ISLAND_RADIUS - 17.0:
+		base = base.lerp(Color(0.43, 0.39, 0.27), 0.42)
+	if point.y > 2.4:
+		base = base.lerp(Color(0.29, 0.34, 0.24), 0.35)
+	return base
+
+func _add_ground_cover(pos: Vector3, size: float) -> void:
+	var tuft := Node3D.new()
+	tuft.position = pos
+	tuft.rotation.y = rng.randf_range(0.0, TAU)
+	tuft.scale = Vector3.ONE * size
+	add_child(tuft)
+	var leaf_colors := [Color(0.12, 0.23, 0.105), Color(0.20, 0.28, 0.12), Color(0.25, 0.29, 0.14), Color(0.16, 0.25, 0.17)]
+	for j in range(3):
+		var blade := MeshInstance3D.new()
+		var blade_mesh := PrismMesh.new()
+		blade_mesh.size = Vector3(0.12, rng.randf_range(0.35, 0.75), 0.10)
+		blade.mesh = blade_mesh
+		blade.position = Vector3(rng.randf_range(-0.18, 0.18), blade_mesh.size.y * 0.45, rng.randf_range(-0.18, 0.18))
+		blade.rotation = Vector3(rng.randf_range(-0.28, 0.28), rng.randf_range(0.0, TAU), rng.randf_range(-0.32, 0.32))
+		blade.material_override = _mat(leaf_colors[rng.randi_range(0, leaf_colors.size() - 1)])
+		tuft.add_child(blade)
+
+func _add_fallen_log(pos: Vector3, length: float) -> void:
+	var log := MeshInstance3D.new()
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.20
+	mesh.bottom_radius = 0.25
+	mesh.height = length
+	mesh.radial_segments = 7
+	log.mesh = mesh
+	log.position = pos + Vector3(0.0, 0.24, 0.0)
+	log.rotation = Vector3(PI * 0.5 + rng.randf_range(-0.08, 0.08), rng.randf_range(0.0, TAU), 0.0)
+	log.material_override = _mat(Color(0.22, 0.14, 0.075))
+	add_child(log)
 func _build_forest() -> void:
 	for i in range(330):
 		var angle := rng.randf_range(0.0, TAU)
@@ -160,6 +246,10 @@ func _build_forest() -> void:
 		_add_tree(Vector3(x, _terrain_height(x, z), z), rng.randf_range(0.72, 1.42))
 		if i % 4 == 0:
 			_add_rock(Vector3(x + rng.randf_range(-2.0, 2.0), _terrain_height(x, z), z + rng.randf_range(-2.0, 2.0)), rng.randf_range(0.35, 1.0))
+		if i % 2 == 0:
+			_add_ground_cover(Vector3(x + rng.randf_range(-1.7, 1.7), _terrain_height(x, z), z + rng.randf_range(-1.7, 1.7)), rng.randf_range(0.7, 1.35))
+		if i % 17 == 0:
+			_add_fallen_log(Vector3(x + 1.5, _terrain_height(x, z), z - 1.0), rng.randf_range(2.0, 3.8))
 
 func _add_rock(pos: Vector3, size: float) -> void:
 	var rock := MeshInstance3D.new()
@@ -170,7 +260,7 @@ func _add_rock(pos: Vector3, size: float) -> void:
 	rock.position = pos + Vector3(0.0, size * 0.42, 0.0)
 	rock.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf_range(0.0, TAU), rng.randf_range(-0.3, 0.3))
 	rock.scale = Vector3(1.25, 0.72, 0.9)
-	rock.material_override = _mat(Color(0.28, 0.31, 0.28))
+	rock.material_override = _mat([Color(0.28, 0.31, 0.28), Color(0.34, 0.33, 0.28), Color(0.22, 0.27, 0.26)][rng.randi_range(0, 2)])
 	add_child(rock)
 
 func _block(parent: Node3D, pos: Vector3, size: Vector3, color: Color) -> void:
@@ -316,7 +406,15 @@ func _build_hud() -> void:
 	message_label.add_theme_color_override("font_color", Color(0.95, 0.91, 0.75))
 	hud.add_child(message_label)
 	var button := Button.new()
-	button.text = "＋  USAR"
+	button.text = "◈  INTERACTUAR"
+	button.custom_minimum_size = Vector2(152, 62)
+	button.add_theme_color_override("font_color", Color(0.92, 0.94, 0.83))
+	button.add_theme_color_override("font_hover_color", Color(1.0, 0.94, 0.72))
+	button.add_theme_color_override("font_pressed_color", Color(0.77, 0.88, 0.72))
+	button.add_theme_color_override("font_focus_color", Color(0.9, 0.9, 0.7))
+	button.add_theme_stylebox_override("normal", _hud_panel(Color(0.045, 0.085, 0.075, 0.92), Color(0.48, 0.58, 0.42, 0.85)))
+	button.add_theme_stylebox_override("hover", _hud_panel(Color(0.09, 0.15, 0.12, 0.96), Color(0.73, 0.72, 0.45, 0.95)))
+	button.add_theme_stylebox_override("pressed", _hud_panel(Color(0.12, 0.17, 0.11, 0.98), Color(0.7, 0.66, 0.38, 1.0)))
 	button.anchor_left = 1.0
 	button.anchor_right = 1.0
 	button.anchor_top = 1.0
@@ -341,6 +439,18 @@ func _build_hud() -> void:
 	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.77, 0.82, 0.73))
 	hud.add_child(hint)
+
+func _hud_panel(fill: Color, border_color: Color) -> StyleBoxFlat:
+	var panel := StyleBoxFlat.new()
+	panel.bg_color = fill
+	panel.border_color = border_color
+	panel.set_border_width_all(1)
+	panel.set_corner_radius_all(5)
+	panel.content_margin_left = 12.0
+	panel.content_margin_right = 12.0
+	panel.content_margin_top = 8.0
+	panel.content_margin_bottom = 8.0
+	return panel
 
 func _on_interact_pressed() -> void:
 	_show_message(player.interact())
