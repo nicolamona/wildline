@@ -19,7 +19,7 @@ const WEB_MOTION_INIT := """
   const state = window.wildlineMotion = {
     enabled: false, permission: false, beta: 0, gamma: 0,
     neutralBeta: 0, neutralGamma: 0, forward: 0, turn: 0,
-    shakeCount: 0, lastShake: 0, lastAcceleration: null
+    shakeCount: 0, lastShake: 0, lastAcceleration: null, calibrating: false
   };
   const button = document.createElement('button');
   button.id = 'wildline-motion-toggle';
@@ -39,6 +39,14 @@ const WEB_MOTION_INIT := """
     if (event.beta == null || event.gamma == null) return;
     state.beta = event.beta;
     state.gamma = event.gamma;
+    if (state.calibrating) {
+      state.neutralBeta = state.beta;
+      state.neutralGamma = state.gamma;
+      state.calibrating = false;
+      state.forward = 0;
+      state.turn = 0;
+      return;
+    }
     state.forward = Math.max(-1, Math.min(1, (state.beta - state.neutralBeta) / 24));
     state.turn = Math.max(-1, Math.min(1, (state.gamma - state.neutralGamma) / 22));
   }
@@ -90,12 +98,11 @@ const WEB_MOTION_INIT := """
           return;
         }
       }
-      state.neutralBeta = state.beta;
-      state.neutralGamma = state.gamma;
       state.forward = 0;
       state.turn = 0;
       state.permission = true;
       state.enabled = true;
+      state.calibrating = true;
       window.addEventListener('deviceorientation', onOrientation, true);
       window.addEventListener('devicemotion', onMotion, true);
       updateButton('MOVIMIENTO ACTIVO · AGITÁ PARA SALTAR');
