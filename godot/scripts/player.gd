@@ -90,7 +90,8 @@ func _update_move_from_drag(drag: Vector2) -> void:
 		move_input = Vector2.ZERO
 		return
 	var strength := minf(distance / 58.0, 1.0)
-	move_input = Vector2(drag.x, -drag.y).normalized() * strength
+	# Screen Y already has the correct sign for Godot local movement: up = negative Z.
+	move_input = Vector2(drag.x, drag.y).normalized() * strength
 
 func _apply_look(relative: Vector2) -> void:
 	rotation.y -= relative.x * look_sensitivity
