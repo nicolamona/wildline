@@ -14,8 +14,6 @@ var rng := RandomNumberGenerator.new()
 var material_cache: Dictionary = {}
 var joystick_gui_active := false
 var joystick_gui_origin := Vector2.ZERO
-var movement_holds: Dictionary = {}
-var mouse_move_active := false
 var dpad_buttons: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -29,67 +27,6 @@ func _ready() -> void:
 	_build_hud()
 	GameState.changed.connect(_refresh_hud)
 	_refresh_hud()
-
-func _input(event: InputEvent) -> void:
-	# Respaldo de movimiento independiente del sistema GUI de Godot.
-	# En algunos navegadores móviles los Button se dibujan pero no reciben
-	# correctamente el toque; aquí leemos el área del D-pad desde el viewport.
-	var viewport_size := get_viewport().get_visible_rect().size
-	if event is InputEventScreenTouch:
-		var key := "touch_%d" % event.index
-		if event.pressed:
-			var direction := _dpad_direction(event.position, viewport_size)
-			if direction != Vector2.ZERO:
-				movement_holds[key] = direction
-				_apply_dpad_holds()
-		elif movement_holds.has(key):
-			movement_holds.erase(key)
-			_apply_dpad_holds()
-	elif event is InputEventScreenDrag:
-		var key := "touch_%d" % event.index
-		if movement_holds.has(key):
-			var direction := _dpad_direction(event.position, viewport_size)
-			if direction != Vector2.ZERO:
-				movement_holds[key] = direction
-				_apply_dpad_holds()
-	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			var direction := _dpad_direction(event.position, viewport_size)
-			if direction != Vector2.ZERO:
-				mouse_move_active = true
-				movement_holds["mouse"] = direction
-				_apply_dpad_holds()
-		elif mouse_move_active:
-			mouse_move_active = false
-			movement_holds.erase("mouse")
-			_apply_dpad_holds()
-	elif event is InputEventMouseMotion and mouse_move_active:
-		var direction := _dpad_direction(event.position, viewport_size)
-		if direction != Vector2.ZERO:
-			movement_holds["mouse"] = direction
-			_apply_dpad_holds()
-
-func _dpad_direction(position: Vector2, _viewport_size: Vector2) -> Vector2:
-	# InputEvent.position está en coordenadas del viewport, mientras que los
-	# controles del HUD pueden tener escala/transformación de CanvasLayer.
-	# Convertimos el toque al espacio local de cada botón antes de comprobarlo.
-	for entry in dpad_buttons:
-		var move_button := entry["button"] as Control
-		if not is_instance_valid(move_button):
-			continue
-		var local_position: Vector2 = move_button.get_global_transform_with_canvas().affine_inverse() * position
-		var hit_rect := Rect2(Vector2.ZERO, move_button.size).grow(12.0)
-		if hit_rect.has_point(local_position):
-			return entry["direction"] as Vector2
-	return Vector2.ZERO
-
-func _apply_dpad_holds() -> void:
-	if not is_instance_valid(player):
-		return
-	var combined := Vector2.ZERO
-	for direction in movement_holds.values():
-		combined += direction
-	player.move_input = combined.normalized() if combined.length() > 0.0 else Vector2.ZERO
 
 func _process(delta: float) -> void:
 	if message_timer > 0.0:
@@ -561,8 +498,7 @@ func _build_hud() -> void:
 	joystick_base.offset_right = 136
 	joystick_base.offset_top = -150
 	joystick_base.offset_bottom = -38
-	# Capture movement directly through Godot GUI input on mobile browsers.
-	# The parent panel must never consume touch input; let each arrow Button own it.
+	# Godot GUI Button receives the touch directly; no manual viewport hit-testing.
 	joystick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_base.add_theme_stylebox_override("panel", _hud_panel(Color(0.035, 0.075, 0.065, 0.45), Color(0.65, 0.74, 0.56, 0.62)))
 	hud.add_child(joystick_base)
