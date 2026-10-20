@@ -18,7 +18,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     container:
       image: barichello/godot-ci:4.4.1
     steps:
@@ -27,6 +27,47 @@ jobs:
 
       - name: Report Godot version
         run: godot --version
+
+      - name: Configure Android export prerequisites
+        shell: bash
+        run: |
+          set -euxo pipefail
+
+          # Install the official export templates matching Godot 4.4.1.
+          TEMPLATE_DIR="$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          mkdir -p "$TEMPLATE_DIR"
+          wget -q "https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz" -O /tmp/godot-templates.tpz
+          mkdir -p /tmp/godot-templates
+          unzip -q /tmp/godot-templates.tpz -d /tmp/godot-templates
+          cp /tmp/godot-templates/templates/* "$TEMPLATE_DIR/"
+          test -s "$TEMPLATE_DIR/android_debug.apk"
+          test -s "$TEMPLATE_DIR/android_release.apk"
+
+          # Resolve SDK/JDK locations from the CI image and create an ephemeral debug key.
+          JAVA_BIN="$(readlink -f "$(command -v javac)")"
+          JAVA_HOME="$(dirname "$(dirname "$JAVA_BIN")")"
+          ANDROID_SDK_PATH="${ANDROID_HOME:-/usr/lib/android-sdk}"
+          test -x "$JAVA_HOME/bin/java"
+          test -x "$ANDROID_SDK_PATH/platform-tools/adb"
+
+          mkdir -p "$HOME/.android" "$HOME/.config/godot"
+          keytool -keyalg RSA -genkeypair -alias androiddebugkey -keypass android -keystore "$HOME/.android/debug.keystore" -storepass android -dname "CN=Android Debug,O=Android,C=US" -validity 9999 -deststoretype pkcs12
+
+          cat > "$HOME/.config/godot/editor_settings-4.4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_SDK_PATH"
+          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          export/android/force_system_user = false
+          EOF
+
+          echo "Java: $JAVA_HOME"
+          echo "Android SDK: $ANDROID_SDK_PATH"
+          echo "Godot Android templates installed."
 
       - name: Import project and scan scripts
         run: godot --headless --editor --path godot --quit
@@ -41,6 +82,7 @@ jobs:
         run: |
           mkdir -p build
           godot --headless --path godot --export-debug "Android" build/WILDLINE-debug.apk
+          test -s build/WILDLINE-debug.apk
 
       - name: Upload Android APK for device testing
         uses: actions/upload-artifact@v4
