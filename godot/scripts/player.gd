@@ -20,7 +20,7 @@ func _ready() -> void:
 	rotation.y = float(GameState.player.get("yaw", 0.0))
 	camera.rotation.x = float(GameState.player.get("pitch", 0.0))
 
-func _input(event: InputEvent) -> void:
+func _unhandled_input(event: InputEvent) -> void:
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	# El movimiento táctil pertenece exclusivamente a los cuatro botones GUI
 	# creados en world.gd. Aquí solo se procesa la cámara y el ratón de escritorio.
