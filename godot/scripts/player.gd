@@ -24,6 +24,10 @@ func _input(event: InputEvent) -> void:
 	var mobile_input := OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios")
 	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
 	if event is InputEventMouseButton:
+		# The on-screen movement buttons own this area. Do not let the
+		# player's mouse-drag fallback overwrite their hold-to-move input.
+		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
+			return
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if event.pressed:
 				# Some mobile browsers translate touch into mouse events instead
@@ -38,6 +42,9 @@ func _input(event: InputEvent) -> void:
 				left_touch_index = -1
 				move_input = Vector2.ZERO
 	elif event is InputEventMouseMotion:
+		# Keep mouse motion over the visible D-pad away from the floating joystick fallback.
+		if event.position.x <= 160.0 and event.position.y >= viewport_size.y - 180.0:
+			return
 		if left_touch_index == -2 and ((event.button_mask & MOUSE_BUTTON_MASK_LEFT) != 0 or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)):
 			_update_move_from_drag(event.position - left_touch_origin)
 		elif not mobile_input and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
