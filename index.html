@@ -126,7 +126,7 @@ const bushGeo=new THREE.IcosahedronGeometry(1,1);const bushMats=[mat(0x294a31,.9
 
 const player={x:0,z:7,yaw:0,pitch:0,health:100,water:82,energy:76,wood:0,stone:0,fiber:0,tool:0,hasAxe:false,hasTorch:false};camera.position.set(player.x,2.05,player.z);
 const torchLight=new THREE.PointLight(0xffbd70,0,24,1.7);torchLight.position.set(0,-.1,-.35);camera.add(torchLight);
-const keys={};let joy={x:0,y:0},buttonMove={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","MISIÓN 04 · PREPARAR EL EQUIPO","MISIÓN 05 · REPARAR LA SEÑAL","MISIÓN 06 · LA BALIZA AZUL","MISIÓN 07 · SUMINISTROS","MISIÓN 08 · NUEVA SEÑAL"];
+const keys={};let joy={x:0,y:0},buttonMove={x:0,y:0},running=false,started=false,qualityHigh=true,nearby=null,dayTime=0;let missionStage=0;const missionNames=["MISIÓN 01 · SUPERVIVIENTE","MISIÓN 02 · SEÑAL DE AUXILIO","MISIÓN 03 · MÁS ALLÁ DE LA COSTA","MISIÓN 04 · PREPARAR EL EQUIPO","MISIÓN 05 · REPARAR LA SEÑAL","MISIÓN 06 · LA BALIZA AZUL","MISIÓN 07 · SUMINISTROS","MISIÓN 08 · NUEVA SEÑAL","MISIÓN 09 · EL NAUFRAGIO"];
 const SAVE_KEY='wildline-save-v1';
 let mapExpanded=false;
 $('mapBtn').addEventListener('click',()=>{mapExpanded=!mapExpanded;$('miniMap').classList.toggle('expanded',mapExpanded);$('mapBtn').textContent=mapExpanded?'⌖ MAPA −':'⌖ MAPA +';});
@@ -150,7 +150,7 @@ function drawMiniMap(){
  }else if(missionStage===1||missionStage===4){tx=-14;tz=-30;label=missionStage===1?'PUESTO':'RADIO'}
  else if(missionStage===2){tx=35;tz=-53;label='CUEVA'}
  else if(missionStage===3){tx=player.x;tz=player.z;label='FABRICAR'}
- else if(missionStage===5||missionStage===7){tx=beaconX;tz=beaconZ;label='BALIZA'}else if(missionStage===8){tx=75;tz=-55;label='SEÑAL'}else{tx=player.x;tz=player.z;label='COMPLETO'}
+ else if(missionStage===5||missionStage===7){tx=beaconX;tz=beaconZ;label='BALIZA'}else if(missionStage===8){tx=75;tz=-55;label='SEÑAL'}else if(missionStage===9){tx=-70;tz=35;label='NAUFRAGIO'}else{tx=player.x;tz=player.z;label='COMPLETO'}
  const dx=tx-player.x,dz=tz-player.z,distance=Math.hypot(dx,dz);
  // Transform world coordinates into the player's local view: forward is always up.
  const right=dx*Math.cos(player.yaw)-dz*Math.sin(player.yaw);
@@ -186,7 +186,7 @@ function loadProgress(){
   const data=JSON.parse(raw);if(!data||data.version!==1||!data.player)return false;
   const p=data.player;
   for(const k of ['x','z','yaw','pitch','health','water','energy','wood','stone','fiber','tool'])if(Number.isFinite(p[k]))player[k]=p[k];
-  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,8):0;player.hasAxe=!!p.hasAxe;player.hasTorch=!!p.hasTorch;player.tool=Number.isInteger(p.tool)?THREE.MathUtils.clamp(p.tool,0,2):0;if(player.tool===1&&!player.hasAxe)player.tool=0;if(player.tool===2&&!player.hasTorch)player.tool=0;torchLight.intensity=player.tool===2&&player.hasTorch?2.8:0;
+  missionStage=Number.isInteger(data.missionStage)?THREE.MathUtils.clamp(data.missionStage,0,9):0;player.hasAxe=!!p.hasAxe;player.hasTorch=!!p.hasTorch;player.tool=Number.isInteger(p.tool)?THREE.MathUtils.clamp(p.tool,0,2):0;if(player.tool===1&&!player.hasAxe)player.tool=0;if(player.tool===2&&!player.hasTorch)player.tool=0;torchLight.intensity=player.tool===2&&player.hasTorch?2.8:0;
   if(Array.isArray(data.taken))for(const i of data.taken){if(Number.isInteger(i)&&resourceObjects[i]&&!resourceObjects[i].taken){resourceObjects[i].taken=true;scene.remove(resourceObjects[i].group)}}
   camera.position.set(player.x,terrainY(player.x,player.z)+1.72,player.z);camera.rotation.set(player.pitch,player.yaw,0,'YXZ');
   hasLocalSave=true;updateStats();updateMission();$('start').textContent='CONTINUAR PARTIDA →';
@@ -217,7 +217,7 @@ function updateMission(){
  else if(missionStage===2){title.textContent=player.hasTorch?'Explora la cueva iluminando el camino':'Fabrica una antorcha y explora la cueva';detail.textContent=player.hasTorch?'Equipa la antorcha con el botón HERRAM. antes de entrar.':'Abre el inventario: cuesta 1 madera y 2 fibras. La cueva requiere luz.';fill.style.width='45%';count.textContent=player.hasTorch?'ANTORCHA LISTA · CUEVA':'FABRICA UNA ANTORCHA'}
  else if(missionStage===3){title.textContent='Prepara herramientas de rescate';detail.textContent='Fabrica un hacha de piedra para despejar recursos y preparar la reparación.';fill.style.width='62%';count.textContent=player.hasAxe?'HACHA FABRICADA':'FABRICA UN HACHA'}
  else if(missionStage===4){title.textContent='Repara la radio de emergencia';detail.textContent='Vuelve al puesto con 3 maderas, 2 piedras y 2 fibras para reparar la antena.';fill.style.width='82%';count.textContent='MADERA '+player.wood+'/3 · PIEDRA '+player.stone+'/2 · FIBRA '+player.fiber+'/2'}
- else if(missionStage===5){title.textContent='Investiga la baliza azul';detail.textContent='La radio activó una baliza desconocida al este. Sigue el marcador del mapa e interactúa junto a ella.';fill.style.width='100%';count.textContent='NUEVO OBJETIVO · BALIZA'}else if(missionStage===6){title.textContent='Reúne 3 fibras vegetales';detail.textContent='La baliza necesita suministros para continuar. Busca y recoge 3 fibras vegetales.';fill.style.width=Math.min(100,player.fiber/3*100)+'%';count.textContent=Math.min(player.fiber,3)+' / 3 FIBRAS'}else if(missionStage===7){title.textContent='Regresa a la baliza azul';detail.textContent='Con los suministros reunidos, vuelve a la baliza e interactúa para seguir la señal.';fill.style.width='75%';count.textContent='DESTINO · BALIZA'}else{title.textContent='Sigue la señal hacia el norte';detail.textContent='La baliza ha revelado una segunda fuente de transmisión. Sigue el marcador hasta el nuevo punto de señal.';fill.style.width='90%';count.textContent='NUEVO DESTINO · SEÑAL'}
+ else if(missionStage===5){title.textContent='Investiga la baliza azul';detail.textContent='La radio activó una baliza desconocida al este. Sigue el marcador del mapa e interactúa junto a ella.';fill.style.width='100%';count.textContent='NUEVO OBJETIVO · BALIZA'}else if(missionStage===6){title.textContent='Reúne 3 fibras vegetales';detail.textContent='La baliza necesita suministros para continuar. Busca y recoge 3 fibras vegetales.';fill.style.width=Math.min(100,player.fiber/3*100)+'%';count.textContent=Math.min(player.fiber,3)+' / 3 FIBRAS'}else if(missionStage===7){title.textContent='Regresa a la baliza azul';detail.textContent='Con los suministros reunidos, vuelve a la baliza e interactúa para seguir la señal.';fill.style.width='75%';count.textContent='DESTINO · BALIZA'}else if(missionStage===8){title.textContent='Sigue la señal hacia el norte';detail.textContent='La baliza ha revelado una segunda fuente de transmisión. Sigue el marcador hasta el nuevo punto de señal e interactúa.';fill.style.width='90%';count.textContent='NUEVO DESTINO · SEÑAL'}else{title.textContent='Investiga el naufragio';detail.textContent='La señal apunta a un naufragio en la costa sur. Sigue el marcador para descubrir qué ocurrió.';fill.style.width='95%';count.textContent='NUEVO DESTINO · NAUFRAGIO'}
  saveProgress();
 }
 function collectResource(r){
@@ -259,7 +259,9 @@ function interact(){
  const beaconDist=Math.hypot(player.x-beaconX,player.z-beaconZ);
  if(beaconDist<7){if(missionStage===5){missionStage=6;updateMission();toast('Baliza registrada. Nueva misión: reúne 3 fibras vegetales.')}else if(missionStage===6){toast(player.fiber>=3?'Ya tienes las fibras. Regresa a la baliza azul.':'Necesitas reunir 3 fibras vegetales primero.')}else if(missionStage===7){missionStage=8;updateMission();toast('Baliza sincronizada. Nueva misión: sigue la señal hacia el norte.')}else{toast('Baliza azul: señal secundaria detectada.')}return;}
  const signalDist=Math.hypot(player.x-75,player.z+55);
- if(signalDist<7&&missionStage===8){toast('Señal detectada. Próxima expedición desbloqueada.');return;}
+ if(signalDist<7&&missionStage===8){missionStage=9;updateMission();toast('Señal localizada. Nueva misión: investiga el naufragio.');return;}
+ const wreckDist=Math.hypot(player.x+70,player.z-35);
+ if(wreckDist<8&&missionStage===9){toast('Llegaste al área del naufragio. La investigación continúa.');return;}
  const caveDist=Math.hypot(player.x-35,player.z+53);
  if(caveDist<8){
   if(missionStage===2){
