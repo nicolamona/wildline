@@ -105,7 +105,7 @@ const WEB_MOTION_INIT := """
       state.calibrating = true;
       window.addEventListener('deviceorientation', onOrientation, true);
       window.addEventListener('devicemotion', onMotion, true);
-      updateButton('MOVIMIENTO ACTIVO · AGITÁ PARA SALTAR');
+      updateButton('ACTIVO · INCLINÁ PARA AVANZAR/GIRAR · AGITÁ PARA SALTAR');
     } catch (error) {
       updateButton('NO SE PUDO ACTIVAR · VOLVÉ A TOCAR');
     }
